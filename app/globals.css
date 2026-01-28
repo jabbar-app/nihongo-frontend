@@ -1,0 +1,215 @@
+@import "tailwindcss";
+
+@theme {
+    --font-sans: 'Inter', sans-serif;
+    --font-urbanist: 'Urbanist', sans-serif;
+
+    /* Design System Colors */
+    --color-primary-blue: #2563eb;
+    --color-primary-blue-light: #3b82f6;
+    --color-primary-blue-dark: #1e40af;
+    --color-accent-orange: #ea580c;
+    --color-accent-orange-light: #fb923c;
+    --color-success-green: #16a34a;
+    --color-error-red: #dc2626;
+}
+
+@layer base {
+    body {
+        @apply bg-white text-sm text-gray-800 antialiased;
+    }
+    
+    /* Dark mode support */
+    .dark body {
+        @apply bg-gray-900 text-gray-100;
+    }
+
+    /* Mobile-first base styles */
+    * {
+        @apply md:transition-colors;
+    }
+    
+    /* Furigana styling */
+    ruby {
+        ruby-align: center;
+    }
+    
+    rt {
+        font-size: 0.6em;
+        line-height: 1.2;
+    }
+}
+
+/* Explicit background utilities - Tailwind v4 fallback */
+/* Since Tailwind v4 isn't generating these classes, we define them manually */
+@layer utilities {
+    /* Base backgrounds */
+    .bg-gray-50 {
+        background-color: rgb(249 250 251);
+    }
+    
+    .bg-white {
+        background-color: rgb(255 255 255);
+    }
+    
+    .bg-gray-100 {
+        background-color: rgb(243 244 246);
+    }
+    
+    .bg-gray-200 {
+        background-color: rgb(229 231 235);
+    }
+    
+    .bg-yellow-100 {
+        background-color: rgb(254 243 199);
+    }
+    
+    .bg-red-50 {
+        background-color: rgb(254 242 242);
+    }
+}
+
+    /* Dark mode overrides - target elements with dark: variant classes when .dark is present */
+    @layer utilities {
+        /* When dark class is on html, override backgrounds for elements with dark: variants */
+        html.dark main[class*="dark:bg-gray-900"] {
+            background-color: rgb(17 24 39);
+        }
+        
+        html.dark [class*="dark:bg-gray-900"] {
+            background-color: rgb(17 24 39) !important;
+        }
+        
+        /* Override bg-white in dark mode - must come after dark:bg-gray-900 */
+        html.dark [class*="bg-white"] {
+            background-color: rgb(17 24 39) !important;
+        }
+        
+        /* But allow explicit white backgrounds when needed */
+        html.dark [class*="bg-white"][class*="!bg-white"] {
+            background-color: rgb(255 255 255) !important;
+        }
+        
+        html.dark [class*="dark:bg-gray-800"] {
+            background-color: rgb(31 41 55);
+        }
+        
+        html.dark [class*="dark:bg-gray-700"] {
+            background-color: rgb(55 65 81);
+        }
+        
+        html.dark [class*="dark:bg-yellow-900"] {
+            background-color: rgb(113 63 18);
+        }
+        
+        html.dark [class*="dark:bg-red-900"] {
+            background-color: rgb(127 29 29);
+        }
+    
+    /* Border colors for dark mode */
+    html.dark [class*="dark:border-gray-700"] {
+        border-color: rgb(55 65 81);
+    }
+    
+    html.dark [class*="dark:border-gray-600"] {
+        border-color: rgb(75 85 99);
+    }
+    
+    /* Explicit border colors for light mode - ensure border-gray-200 works */
+    html:not(.dark) [class*="border-gray-200"],
+    html:not(.dark) .border-gray-200,
+    html:not(.dark) [class*="border-t"][class*="border-gray-200"] {
+        border-color: rgb(229 231 235) !important;
+    }
+    
+    /* Prevent dark:border-gray-700 from applying in light mode */
+    html:not(.dark) [class*="dark:border-gray-700"],
+    html:not(.dark) .dark\:border-gray-700,
+    html:not(.dark) [class*="border-t"][class*="dark:border-gray-700"] {
+        border-color: rgb(229 231 235) !important;
+    }
+    
+    /* Special case: elements with both border-gray-200 and dark:border-gray-700 in light mode */
+    html:not(.dark) [class*="border-gray-200"][class*="dark:border-gray-700"] {
+        border-color: rgb(229 231 235) !important;
+    }
+    
+    /* Explicit border colors for feedback - override dark mode */
+    html.dark [class*="border-red-500"] {
+        border-color: rgb(239 68 68) !important;
+    }
+    
+    html [class*="border-red-500"] {
+        border-color: rgb(239 68 68) !important;
+    }
+    
+    html.dark [class*="border-green-500"] {
+        border-color: rgb(34 197 94) !important;
+    }
+    
+    html [class*="border-green-500"] {
+        border-color: rgb(34 197 94) !important;
+    }
+    
+    /* Explicit text colors for light mode - ensure text-gray-900 works */
+    /* Force text-gray-900 in light mode - highest specificity */
+    html:not(.dark) [class*="text-gray-900"],
+    html:not(.dark) [class*="text-gray-900"][class*="dark:text-white"],
+    html:not(.dark) .text-gray-900,
+    html:not(.dark) .text-gray-900.dark\:text-white {
+        color: rgb(17 24 39) !important;
+    }
+    
+    /* Override dark:text-white in light mode - apply dark color instead */
+    html:not(.dark) [class*="dark:text-white"],
+    html:not(.dark) .dark\:text-white {
+        color: rgb(17 24 39) !important;
+    }
+    
+    html:not(.dark) [class*="text-gray-800"] {
+        color: rgb(31 41 55) !important;
+    }
+    
+    html:not(.dark) [class*="text-gray-700"] {
+        color: rgb(55 65 81) !important;
+    }
+    
+    html:not(.dark) [class*="text-gray-600"] {
+        color: rgb(75 85 99) !important;
+    }
+    
+    html:not(.dark) [class*="text-gray-500"] {
+        color: rgb(107 114 128) !important;
+    }
+}
+
+/* Mobile-first safe area support */
+@layer utilities {
+    .safe-area-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .safe-area-top {
+        padding-top: env(safe-area-inset-top);
+    }
+
+    /* Mobile container */
+    .container-mobile {
+        @apply max-w-md mx-auto px-4;
+    }
+
+    /* Desktop container */
+    .container-desktop {
+        @apply max-w-7xl mx-auto px-4 md:px-16 lg:px-24 xl:px-32;
+    }
+    
+    /* Hide scrollbar but keep functionality */
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+}
