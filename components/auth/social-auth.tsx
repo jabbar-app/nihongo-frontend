@@ -15,8 +15,8 @@ export default function SocialAuth() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-                <button
-                    type="button"
+                <a
+                    href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/auth/google`}
                     className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 cursor-pointer"
                 >
                     <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -38,15 +38,15 @@ export default function SocialAuth() {
                         />
                     </svg>
                     <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Google</span>
-                </button>
+                </a>
 
-                <button
-                    type="button"
+                <a
+                    href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/auth/github`}
                     className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 cursor-pointer"
                 >
                     <Github className="w-5 h-5 text-gray-900 dark:text-white" />
                     <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">GitHub</span>
-                </button>
+                </a>
             </div>
         </div>
     );
