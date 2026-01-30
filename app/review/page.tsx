@@ -74,6 +74,8 @@ export default function ReviewPage() {
   const [user, setUser] = useState<any>(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [hintState, setHintState] = useState<'none' | 'kana' | 'meaning'>('none');
+  const [hintScope, setHintScope] = useState<'this_only' | 'rest_of_session'>('this_only');
+  const [hintModalOpen, setHintModalOpen] = useState(false);
   const [kanaInput, setKanaInput] = useState('');
   const [kanaCorrect, setKanaCorrect] = useState<boolean | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -103,12 +105,8 @@ export default function ReviewPage() {
     if (inputError) setInputError('');
   };
 
-  const toggleHint = () => {
-    setHintState(prev => {
-      if (prev === 'none') return 'kana';
-      if (prev === 'kana') return 'meaning';
-      return 'none';
-    });
+  const applyHintAndClose = () => {
+    setHintModalOpen(false);
   };
 
 
@@ -523,7 +521,7 @@ export default function ReviewPage() {
   useEffect(() => {
     if (currentCard) {
       setShowAnswer(false);
-      setHintState('none'); // Reset hint
+      if (hintScope === 'this_only') setHintState('none');
       setKanaInput('');
       setKanaCorrect(null);
       setShowFeedback(false);
@@ -536,7 +534,7 @@ export default function ReviewPage() {
 
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [currentCard]);
+  }, [currentCard, hintScope]);
 
   useEffect(() => {
     if (showAnswer && currentCard) {
@@ -814,11 +812,11 @@ export default function ReviewPage() {
 
             {/* Top Row: Hint Button, Difficulty Badge, and Timer */}
             <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
-              {/* Show/Hide Hint Button (Updated) */}
+              {/* Hint Button — opens modal to choose Kana/Meaning and scope */}
               <button
-                onClick={toggleHint}
+                onClick={() => setHintModalOpen(true)}
                 className="p-2 rounded-full hover:bg-orange-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-1 z-20"
-                title="Cycle hints (Kana -> Meaning)"
+                title="Hint options"
               >
                 {hintState !== 'none' ? (
                   <LightbulbIcon className="w-5 h-5 text-orange-500 dark:text-orange-400" />
@@ -1099,10 +1097,10 @@ export default function ReviewPage() {
                     onClick={() => handleGrade('again')}
                     disabled={submitting}
                     className="group flex flex-col items-center justify-center min-h-[72px] py-3 px-2 rounded-xl bg-red-50/50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-900/40 hover:bg-red-100 dark:hover:bg-red-900/40 hover:border-red-300 dark:hover:border-red-800 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
-                    title="Again (1)"
+                    title="Forgot (1)"
                   >
                     <span className="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-400 tabular-nums group-hover:scale-105 transition-transform">1</span>
-                    <span className="text-[10px] sm:text-xs font-semibold text-red-600/90 dark:text-red-400/90 uppercase tracking-wide mt-0.5">Again</span>
+                    <span className="text-[10px] sm:text-xs font-semibold text-red-600/90 dark:text-red-400/90 uppercase tracking-wide mt-0.5">Forgot</span>
                   </button>
 
                   <button
@@ -1138,6 +1136,112 @@ export default function ReviewPage() {
               </div>
             )}
           </Card>
+
+          {/* Hint options modal */}
+          {hintModalOpen && (
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50"
+              onClick={() => setHintModalOpen(false)}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="hint-modal-title"
+            >
+              <div
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-sm w-full p-5 border border-gray-200 dark:border-gray-700"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h2 id="hint-modal-title" className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <LightbulbIcon className="w-5 h-5 text-orange-500 dark:text-orange-400" />
+                    Hint
+                  </h2>
+                  <button
+                    onClick={() => setHintModalOpen(false)}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+                    aria-label="Close"
+                  >
+                    <XIcon className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Show hint</div>
+                    <div className="flex flex-col gap-2">
+                      <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50 dark:has-[:checked]:bg-orange-900/20">
+                        <input
+                          type="radio"
+                          name="hint-type"
+                          value="none"
+                          checked={hintState === 'none'}
+                          onChange={() => setHintState('none')}
+                          className="w-4 h-4 text-orange-500"
+                        />
+                        <span className="text-sm text-gray-900 dark:text-white">No hint</span>
+                      </label>
+                      <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50 dark:has-[:checked]:bg-orange-900/20">
+                        <input
+                          type="radio"
+                          name="hint-type"
+                          value="kana"
+                          checked={hintState === 'kana'}
+                          onChange={() => setHintState('kana')}
+                          className="w-4 h-4 text-orange-500"
+                        />
+                        <span className="text-sm text-gray-900 dark:text-white">Kana (reading)</span>
+                      </label>
+                      <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50 dark:has-[:checked]:bg-orange-900/20">
+                        <input
+                          type="radio"
+                          name="hint-type"
+                          value="meaning"
+                          checked={hintState === 'meaning'}
+                          onChange={() => setHintState('meaning')}
+                          className="w-4 h-4 text-orange-500"
+                        />
+                        <span className="text-sm text-gray-900 dark:text-white">Meaning</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Show for</div>
+                    <div className="flex flex-col gap-2">
+                      <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 has-[:checked]:border-teal-500 has-[:checked]:bg-teal-50 dark:has-[:checked]:bg-teal-900/20">
+                        <input
+                          type="radio"
+                          name="hint-scope"
+                          value="this_only"
+                          checked={hintScope === 'this_only'}
+                          onChange={() => setHintScope('this_only')}
+                          className="w-4 h-4 text-teal-500"
+                        />
+                        <span className="text-sm text-gray-900 dark:text-white">This question only</span>
+                      </label>
+                      <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 has-[:checked]:border-teal-500 has-[:checked]:bg-teal-50 dark:has-[:checked]:bg-teal-900/20">
+                        <input
+                          type="radio"
+                          name="hint-scope"
+                          value="rest_of_session"
+                          checked={hintScope === 'rest_of_session'}
+                          onChange={() => setHintScope('rest_of_session')}
+                          className="w-4 h-4 text-teal-500"
+                        />
+                        <span className="text-sm text-gray-900 dark:text-white">Rest of questions</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={applyHintAndClose}
+                  className="mt-4 w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700 text-white font-medium transition-colors"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </main>
