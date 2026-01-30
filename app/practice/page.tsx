@@ -157,15 +157,7 @@ export default function PracticePage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {session && (
-              <Button
-                onClick={endSession}
-                disabled={ending}
-                className="bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 border-none shadow-none"
-              >
-                {ending ? <LoaderIcon className="w-4 h-4 animate-spin" /> : 'End Session'}
-              </Button>
-            )}
+
             <ThemeToggle />
           </div>
         </div>
@@ -404,7 +396,7 @@ export default function PracticePage() {
   }
 
   return (
-    <main className="h-[calc(100dvh-4rem)] bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
+    <main className="h-[calc(100dvh-4rem)] pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
       {/* Mobile Sidebar */}
       <MobileSidebar
         isOpen={sidebarOpen}
