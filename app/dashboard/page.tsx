@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FlameIcon, PlayIcon, ArrowRightIcon, BookOpenIcon, GlobeIcon, BriefcaseIcon, UserIcon, ShoppingBagIcon, GraduationCapIcon, BookIcon, MenuIcon } from 'lucide-react';
+import { FlameIcon, PlayIcon, BookOpenIcon, GlobeIcon, BriefcaseIcon, UserIcon, ShoppingBagIcon, GraduationCapIcon, BookIcon, MenuIcon, InfoIcon, XIcon } from 'lucide-react';
 import MobileSidebar from '@/components/mobile-sidebar';
 import { useHeader } from '@/components/header-context';
 import ThemeToggle from '@/components/theme-toggle';
@@ -66,7 +66,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isDarkMode } = useTheme();
-  const progressBorderRef = useRef<HTMLDivElement>(null);
+  const [cardsMasteredInfoOpen, setCardsMasteredInfoOpen] = useState(false);
 
   // Header Context
   const { setHeaderContent } = useHeader();
@@ -136,8 +136,8 @@ export default function DashboardPage() {
       try {
         const decksData = await api.get<{ data: Deck[] } | Deck[]>('/api/v1/decks?per_page=4');
         setDecks(Array.isArray(decksData) ? decksData : decksData.data || []);
-      } catch (err) {
-        console.error('Failed to load decks:', err);
+      } catch {
+        // Failed to load decks
       } finally {
         setDecksLoading(false);
       }
@@ -172,56 +172,6 @@ export default function DashboardPage() {
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [router]);
-
-  // Debug border color for progress section
-  useEffect(() => {
-    if (!data || !progressBorderRef.current) return;
-
-    console.log('[Dashboard] ===== Progress Border Color Debug =====');
-    console.log('[Dashboard] isDarkMode state:', isDarkMode);
-    console.log('[Dashboard] documentElement has dark class?', document.documentElement.classList.contains('dark'));
-
-    const borderElement = progressBorderRef.current;
-    const computedStyle = window.getComputedStyle(borderElement);
-
-    console.log('[Dashboard] Border element classes:', borderElement.className);
-    console.log('[Dashboard] Border has border-gray-200?', borderElement.className.includes('border-gray-200'));
-    console.log('[Dashboard] Border has dark:border-gray-700?', borderElement.className.includes('dark:border-gray-700'));
-    console.log('[Dashboard] Computed border-top-color:', computedStyle.borderTopColor);
-    console.log('[Dashboard] Computed border-top-width:', computedStyle.borderTopWidth);
-    console.log('[Dashboard] Computed border-top-style:', computedStyle.borderTopStyle);
-
-    // Check if CSS rules are being applied
-    const stylesheets = Array.from(document.styleSheets);
-    let foundRule = false;
-    stylesheets.forEach((sheet) => {
-      try {
-        const rules = Array.from(sheet.cssRules || []);
-        rules.forEach((rule) => {
-          if (rule instanceof CSSStyleRule) {
-            if (rule.selectorText && rule.selectorText.includes('border-gray-200') && rule.selectorText.includes('not(.dark)')) {
-              console.log(`[Dashboard] Found CSS rule: ${rule.selectorText} -> ${rule.style.borderColor}`);
-              foundRule = true;
-            }
-          }
-        });
-      } catch (e) {
-        // Cross-origin stylesheet, skip
-      }
-    });
-    if (!foundRule) {
-      console.log('[Dashboard] WARNING: Could not find CSS rule for border-gray-200 in light mode!');
-    }
-
-    // Check expected vs actual color
-    const expectedColor = 'rgb(229, 231, 235)'; // border-gray-200
-    const actualColor = computedStyle.borderTopColor;
-    console.log('[Dashboard] Expected color (border-gray-200):', expectedColor);
-    console.log('[Dashboard] Actual computed color:', actualColor);
-    console.log('[Dashboard] Colors match?', actualColor === expectedColor || actualColor.includes('229'));
-
-    console.log('[Dashboard] ===== End Border Debug =====');
-  }, [data, isDarkMode]);
 
   if (loading) {
     return (
@@ -355,20 +305,39 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Current Course */}
-          <button
+          {/* Current Course / Cards Mastered */}
+          <div
+            role="button"
+            tabIndex={0}
             onClick={() => router.push('/history')}
-            className="w-full bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 mb-4 shadow-sm hover:shadow-md transition-shadow text-left"
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push('/history'); } }}
+            className="w-full bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 mb-4 shadow-sm hover:shadow-md transition-shadow text-left cursor-pointer"
           >
             <div className="flex items-center justify-between mb-1">
               <div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Cards Mastered</div>
-                <div className="font-semibold text-lg text-gray-900 dark:text-white">{data.cardsMastered} cards</div>
+                <div className="flex items-center gap-2 cursor-pointer">
+                  <span className="font-semibold text-lg text-gray-900 dark:text-white">{data.cardsMastered} cards</span>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setCardsMasteredInfoOpen(true); }}
+                    className="cursor-pointer p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+                    aria-label="How is Cards Mastered calculated?"
+                  >
+                    <InfoIcon className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-              <ArrowRightIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); router.push('/review'); }}
+                className="shrink-0 px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-white text-sm font-medium transition-colors cursor-pointer"
+              >
+                Start Review
+              </button>
             </div>
             {data.rankNext && data.cardsToNext > 0 && (
-              <div ref={progressBorderRef} className="pt-2 border-t border-gray-200 dark:border-gray-700">
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-600 dark:text-gray-400">Progress to {data.rankNext}</span>
                   <span className="text-xs font-semibold text-teal-600 dark:text-teal-400">{data.cardsToNext} cards left</span>
@@ -383,7 +352,60 @@ export default function DashboardPage() {
                 </div>
               </div>
             )}
-          </button>
+          </div>
+
+          {/* Cards Mastered – how it's calculated (info modal) */}
+          {cardsMasteredInfoOpen && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+              onClick={() => setCardsMasteredInfoOpen(false)}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="cards-mastered-info-title"
+            >
+              <div
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-5 border border-gray-200 dark:border-gray-600"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h2 id="cards-mastered-info-title" className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <InfoIcon className="w-5 h-5 text-teal-500 dark:text-teal-400" />
+                    How is Cards Mastered calculated?
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => setCardsMasteredInfoOpen(false)}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+                    aria-label="Close"
+                  >
+                    <XIcon className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-300 space-y-3">
+                  <p>
+                    A card counts as <strong className="text-gray-900 dark:text-white">mastered</strong> only when <strong className="text-gray-900 dark:text-white">both</strong> are true:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1.5 pl-1">
+                    <li>Its <strong>interval</strong> has reached at least <strong>7 days</strong> (you’ll see it again in a week or more).</li>
+                    <li>Its <strong>ease factor</strong> is at least <strong>2.5</strong> (the card is in good standing).</li>
+                  </ul>
+                  <p>
+                    So &quot;Cards Mastered&quot; is not &quot;cards you’ve reviewed&quot;—it’s cards that have graduated to a long interval. That usually means answering <strong>Good</strong> or <strong>Easy</strong> several times in a row on the <strong>same</strong> card. Reviewing many different cards once or twice each spreads progress; none of them may reach 7 days yet, so the count can stay at 0 until you build up a few cards with long intervals.
+                  </p>
+                  <p>
+                    <strong>Again</strong> resets a card’s interval; <strong>Hard</strong> grows it slowly. To increase Cards Mastered, keep reviewing and try to pass the same cards with Good or Easy over time.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCardsMasteredInfoOpen(false)}
+                  className="mt-4 w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-white font-medium transition-colors"
+                >
+                  Got it
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Streak Card */}
@@ -568,7 +590,7 @@ export default function DashboardPage() {
                   <button
                     key={deck.id}
                     onClick={() => handleDeckClick(deck)}
-                    className="bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow text-left"
+                    className="bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow text-left cursor-pointer"
                   >
                     <div className={`w-10 h-10 ${bgColor} dark:opacity-80 rounded-lg flex items-center justify-center mb-2`}>
                       <Icon className={`w-5 h-5 ${iconColor}`} />

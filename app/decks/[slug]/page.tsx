@@ -148,13 +148,13 @@ export default function DeckDetailPage() {
                             </div>
                         </div>
 
-                        {/* Desktop Start Button - Hidden on Mobile */}
-                        <div className="hidden md:block mt-8 md:mt-0">
+                        {/* Start Review Button - visible on mobile and desktop */}
+                        <div className="mt-6 w-full md:mt-0 md:w-auto md:block">
                             <Button
                                 variant="outline"
                                 onClick={() => router.push('/review')}
                                 size="lg"
-                                className="whitespace-nowrap flex items-center justify-center cursor-pointer"
+                                className="w-full md:w-auto whitespace-nowrap flex items-center justify-center cursor-pointer"
                             >
                                 <PlayIcon className="w-6 h-6 mr-3 fill-current flex-shrink-0" />
                                 Start Review

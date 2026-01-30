@@ -79,7 +79,7 @@ export default function HistoryPage() {
         <div className="max-w-md mx-auto px-4 pt-4">
           <button
             onClick={() => router.push('/dashboard')}
-            className="p-2 -ml-2 mb-4"
+            className="p-2 -ml-2 mb-4 cursor-pointer"
           >
             <ArrowLeftIcon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
           </button>
@@ -178,7 +178,7 @@ export default function HistoryPage() {
         <div className="hidden md:block px-4 pt-8 pb-4">
           <button
             onClick={() => router.push('/dashboard')}
-            className="p-2 -ml-2 mb-4"
+            className="p-2 -ml-2 mb-4 cursor-pointer"
           >
             <ArrowLeftIcon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
           </button>
@@ -189,28 +189,28 @@ export default function HistoryPage() {
         {/* Summary Cards */}
         <div className="px-4 my-4">
           <div className="grid grid-cols-2 gap-3">
-            <Card className="p-4">
+            <Card className="p-4 dark:border dark:border-gray-600">
               <div className="flex items-center gap-2 mb-2">
                 <AwardIcon className="w-5 h-5 text-teal-600 dark:text-teal-400" />
                 <div className="text-xs text-gray-500 dark:text-gray-400">Cards Mastered</div>
               </div>
               <div className="text-2xl font-bold text-gray-900 dark:text-white">{data.cardsMastered}</div>
             </Card>
-            <Card className="p-4">
+            <Card className="p-4 dark:border dark:border-gray-600">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUpIcon className="w-5 h-5 text-teal-600 dark:text-teal-400" />
                 <div className="text-xs text-gray-500 dark:text-gray-400">Current Streak</div>
               </div>
               <div className="text-2xl font-bold text-gray-900 dark:text-white">{streakDays} days</div>
             </Card>
-            <Card className="p-4">
+            <Card className="p-4 dark:border dark:border-gray-600">
               <div className="flex items-center gap-2 mb-2">
                 <TargetIcon className="w-5 h-5 text-teal-600 dark:text-teal-400" />
                 <div className="text-xs text-gray-500 dark:text-gray-400">Total Reviews</div>
               </div>
               <div className="text-2xl font-bold text-gray-900 dark:text-white">{totalReviews}</div>
             </Card>
-            <Card className="p-4">
+            <Card className="p-4 dark:border dark:border-gray-600">
               <div className="flex items-center gap-2 mb-2">
                 <CalendarIcon className="w-5 h-5 text-teal-600 dark:text-teal-400" />
                 <div className="text-xs text-gray-500 dark:text-gray-400">Total Time</div>
@@ -222,7 +222,7 @@ export default function HistoryPage() {
 
         {/* Rank Progress */}
         <div className="px-4 mb-4">
-          <Card>
+          <Card className="dark:border dark:border-gray-600">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Current Rank</div>
@@ -259,7 +259,7 @@ export default function HistoryPage() {
         {/* Recent Activity Chart */}
         {data.chartData && data.chartData.length > 0 && (
           <div className="px-4 mb-4">
-            <Card>
+            <Card className="dark:border dark:border-gray-600">
               <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Last 14 Days Activity</h2>
               <div className="space-y-3">
                 {data.chartData.slice(-14).map((day, idx) => {
@@ -286,7 +286,7 @@ export default function HistoryPage() {
 
         {/* Today's Stats */}
         <div className="px-4 mb-4">
-          <Card>
+          <Card className="dark:border dark:border-gray-600">
             <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Today's Progress</h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
