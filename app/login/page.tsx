@@ -8,10 +8,12 @@ import Input from "@/components/ui/input";
 import AuthLayout from "@/components/auth/auth-layout";
 import SocialAuth from "@/components/auth/social-auth";
 import { api } from "@/lib/api";
+import { useRequireGuest } from "@/hooks/use-require-guest";
 import { MailIcon, LockIcon } from "lucide-react";
 
 export default function LoginPage() {
     const router = useRouter();
+    useRequireGuest();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -76,7 +78,7 @@ export default function LoginPage() {
                                 <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 cursor-pointer" />
                                 <span className="text-sm text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300 transition-colors">Remember me</span>
                             </label>
-                            <Link href="#" className="text-sm font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors">
+                            <Link href="/forgot-password" className="text-sm font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors">
                                 Forgot password?
                             </Link>
                         </div>

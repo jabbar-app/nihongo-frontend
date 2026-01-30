@@ -8,10 +8,12 @@ import Input from "@/components/ui/input";
 import AuthLayout from "@/components/auth/auth-layout";
 import SocialAuth from "@/components/auth/social-auth";
 import { api } from "@/lib/api";
+import { useRequireGuest } from "@/hooks/use-require-guest";
 import { UserIcon, MailIcon, LockIcon } from "lucide-react";
 
 export default function RegisterPage() {
     const router = useRouter();
+    useRequireGuest();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
