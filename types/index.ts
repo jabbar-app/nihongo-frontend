@@ -25,26 +25,9 @@ export interface ITestimonial {
     rating: number;
 }
 
-export interface IPricingPlan {
-    icon: LucideIcon;
-    name: string;
-    description: string;
-    price: number;
-    linkText: string;
-    linkUrl: string;
-    features: string[];
-    type?: 'popular' | string;
-}
-
 export interface IFaq {
     question: string;
     answer: string;
-}
-
-export interface ITeamMember {
-    name: string;
-    image: string;
-    role: string;
 }
 
 export interface IFeature {

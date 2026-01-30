@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon, TrendingUpIcon, CalendarIcon, TargetIcon, AwardIcon } from 'lucide-react';
 import Card from '@/components/ui/card';
+import { api } from '@/lib/api';
 import MobileSidebar from '@/components/mobile-sidebar';
 import { MenuIcon } from 'lucide-react';
 
@@ -50,26 +51,7 @@ export default function HistoryPage() {
 
     const fetchDashboard = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-        const response = await fetch(`${apiUrl}/api/v1/dashboard`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json',
-          },
-        });
-
-        if (response.status === 401) {
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user');
-          router.push('/login');
-          return;
-        }
-
-        if (!response.ok) {
-          throw new Error('Failed to load history');
-        }
-
-        const dashboardData = await response.json();
+        const dashboardData = await api.get<DashboardData>('/api/v1/dashboard');
         setData(dashboardData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');

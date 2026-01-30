@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeftIcon, MessageSquareIcon, BookOpenIcon, CalendarIcon, ClockIcon, MenuIcon } from 'lucide-react';
+import { ArrowLeftIcon, MessageSquareIcon, BookOpenIcon, CalendarIcon, ClockIcon, MenuIcon, TrashIcon } from 'lucide-react';
 import ThemeToggle from '@/components/theme-toggle';
+import { api } from '@/lib/api';
 import Card from "@/components/ui/card";
 import MobileSidebar from '@/components/mobile-sidebar';
+import { useHeader } from "@/components/header-context";
 
 interface Reading {
   id: number;
@@ -32,6 +34,7 @@ interface PracticeSession {
   duration_seconds: number | null;
   messages: PracticeMessage[];
   reading?: Reading;
+  messages_count?: number;
 }
 
 export default function PracticeHistoryPage() {
@@ -42,6 +45,45 @@ export default function PracticeHistoryPage() {
   const [error, setError] = useState('');
   const [sessions, setSessions] = useState<PracticeSession[]>([]);
   const [selectedSession, setSelectedSession] = useState<PracticeSession | null>(null);
+
+  // Header Context
+  const { setHeaderContent } = useHeader();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile) {
+      setHeaderContent(
+
+        <div className="flex items-center justify-between w-full h-16 px-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2 flex-1">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors md:hidden"
+            >
+              <MenuIcon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+            </button>
+
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Practice History</h1>
+          </div>
+
+          <ThemeToggle />
+        </div>
+      );
+
+    } else {
+      setHeaderContent(null);
+    }
+    return () => setHeaderContent(null);
+  }, [setHeaderContent, sidebarOpen, isMobile]);
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
@@ -64,28 +106,8 @@ export default function PracticeHistoryPage() {
 
   const fetchSessions = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/v1/practice/sessions`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
-      });
-
-      if (response.status === 401) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user');
-        router.push('/login');
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error('Failed to load practice sessions');
-      }
-
-      const data = await response.json();
-      setSessions(data.data || data || []);
+      const data = await api.get<{ data: PracticeSession[] } | PracticeSession[]>('/api/v1/practice/sessions');
+      setSessions(Array.isArray(data) ? data : data.data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -93,21 +115,19 @@ export default function PracticeHistoryPage() {
     }
   };
 
+  const deleteSession = async (sessionId: number) => {
+    try {
+      await api.delete(`/api/v1/practice/sessions/${sessionId}`);
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete session');
+    }
+  };
+
   const fetchSessionDetails = async (sessionId: number) => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/v1/practice/sessions/${sessionId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSelectedSession(data.session);
-      }
+      const data = await api.get<{ session: PracticeSession }>(`/api/v1/practice/sessions/${sessionId}`);
+      setSelectedSession(data.session);
     } catch (err) {
       console.error('Failed to load session details:', err);
     }
@@ -154,27 +174,7 @@ export default function PracticeHistoryPage() {
       />
 
       <div className="max-w-md mx-auto md:max-w-4xl">
-        {/* Top Navigation */}
-        <div className="px-4 pt-4 pb-2 flex items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 sticky top-0 z-30">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors md:hidden"
-          >
-            <MenuIcon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-          </button>
 
-          <div className="flex items-center gap-2 flex-1">
-            <button
-              onClick={() => router.push('/practice')}
-              className="p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              <ArrowLeftIcon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-            </button>
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Practice History</h1>
-          </div>
-
-          <ThemeToggle />
-        </div>
 
         {/* Error Display */}
         {error && (
@@ -187,7 +187,7 @@ export default function PracticeHistoryPage() {
 
         {/* Tab Navigation */}
         {!selectedSession && (
-          <div className="px-4 pt-1 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <div className="sticky top-16 z-30 px-4 pt-1 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <div className="flex gap-2">
               <button
                 onClick={() => router.push('/practice')}
@@ -196,7 +196,7 @@ export default function PracticeHistoryPage() {
                 Practice
               </button>
               <button
-                onClick={() => {}}
+                onClick={() => { }}
                 className="px-4 py-3 text-sm font-medium text-teal-600 dark:text-teal-400 border-b-2 border-teal-600 dark:border-teal-400 transition-colors"
               >
                 History
@@ -217,7 +217,7 @@ export default function PracticeHistoryPage() {
                     onClick={() => fetchSessionDetails(session.id)}
                   >
                     <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <div className="w-12 h-12 bg-teal-100 dark:bg-teal-900/20/30 rounded-lg flex items-center justify-center flex-shrink-0">
                         {session.reading ? (
                           <BookOpenIcon className="w-6 h-6 text-teal-600 dark:text-teal-400" />
                         ) : (
@@ -241,9 +241,22 @@ export default function PracticeHistoryPage() {
                           )}
                         </div>
                         <div className="text-xs text-gray-400 dark:text-gray-500">
-                          {session.messages?.length || 0} messages
+                          {session.messages_count || session.messages?.length || 0} messages
                         </div>
                       </div>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm('Are you sure you want to delete this session?')) {
+                            deleteSession(session.id);
+                          }
+                        }}
+                        className="p-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors"
+                        title="Delete session"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
                     </div>
                   </Card>
                 ))}
@@ -317,11 +330,10 @@ export default function PracticeHistoryPage() {
                         <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 text-right">You</div>
                       )}
                       <div
-                        className={`rounded-2xl px-4 py-2 ${
-                          msg.role === 'user'
-                            ? 'bg-teal-600 text-white'
-                            : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
-                        }`}
+                        className={`rounded-2xl px-4 py-2 ${msg.role === 'user'
+                          ? 'bg-teal-600 text-white'
+                          : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
+                          }`}
                       >
                         <div className="whitespace-pre-wrap">{msg.content}</div>
                       </div>

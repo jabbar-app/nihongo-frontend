@@ -8,6 +8,9 @@ import Input from '@/components/ui/input';
 import Button from '@/components/ui/button';
 import MobileSidebar from '@/components/mobile-sidebar';
 import { MenuIcon } from 'lucide-react';
+import { api } from '@/lib/api';
+import { useHeader } from '@/components/header-context';
+import ThemeToggle from '@/components/theme-toggle';
 
 interface User {
   id: number;
@@ -30,6 +33,42 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Header Context
+  const { setHeaderContent } = useHeader();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile) {
+
+      setHeaderContent(
+        <div className="flex items-center justify-between w-full h-16 px-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 md:hidden">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              <MenuIcon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+            </button>
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Profile</h1>
+          </div>
+          <ThemeToggle />
+        </div>
+      );
+    } else {
+      setHeaderContent(null);
+    }
+    return () => setHeaderContent(null);
+  }, [setHeaderContent, sidebarOpen, isMobile]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -160,26 +199,7 @@ export default function ProfilePage() {
 
   const fetchUserProfile = async (token: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/v1/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
-      });
-
-      if (response.status === 401) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user');
-        router.push('/login');
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error('Failed to load profile');
-      }
-
-      const userData = await response.json();
+      const userData = await api.get<User>('/api/v1/me');
       setUser(userData);
 
       // Extract whatsapp_number from settings if it exists
@@ -238,29 +258,7 @@ export default function ProfilePage() {
       const formDataToSend = new FormData();
       formDataToSend.append('profile_image', file);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/v1/profile/update`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
-        body: formDataToSend,
-      });
-
-      if (response.status === 401) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user');
-        router.push('/login');
-        return;
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to upload image');
-      }
-
-      const updatedUser = await response.json();
+      const updatedUser = await api.put<User>('/api/v1/profile/update', formDataToSend);
       setUser(updatedUser);
 
       const profileImageUrl = updatedUser.settings?.profile_image_url || updatedUser.profile_image_url || '';
@@ -309,33 +307,10 @@ export default function ProfilePage() {
       }
       // If empty, send empty string (user can clear the number)
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/v1/profile/update`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          whatsapp_number: finalPhoneNumber,
-        }),
+      const updatedUser = await api.put<User>('/api/v1/profile/update', {
+        name: formData.name,
+        whatsapp_number: finalPhoneNumber,
       });
-
-      if (response.status === 401) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user');
-        router.push('/login');
-        return;
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update profile');
-      }
-
-      const updatedUser = await response.json();
       setUser(updatedUser);
 
       // Parse the saved phone number to update state
@@ -380,19 +355,9 @@ export default function ProfilePage() {
       />
 
       <div className="max-w-md mx-auto md:max-w-4xl">
-        {/* Mobile Header */}
-        <div className="md:hidden px-4 pt-4 pb-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 sticky top-0 z-30">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              <MenuIcon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-            </button>
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Profile</h1>
-            <div className="w-10" /> {/* Spacer for centering */}
-          </div>
-        </div>
+
+
+
 
         {/* Desktop Header */}
         <div className="hidden md:block px-4 pt-8 pb-4">
@@ -558,9 +523,8 @@ export default function ProfilePage() {
                                     setShowCountryDropdown(false);
                                     setCountrySearchQuery('');
                                   }}
-                                  className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                                    selectedCountryCode === country.code ? 'bg-teal-50 dark:bg-teal-900/20' : ''
-                                  }`}
+                                  className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${selectedCountryCode === country.code ? 'bg-teal-50 dark:bg-teal-900/20' : ''
+                                    }`}
                                 >
                                   <span className="text-lg">{country.flag}</span>
                                   <span className="flex-1 text-left text-sm font-medium text-gray-900 dark:text-white">{country.country}</span>
@@ -576,10 +540,10 @@ export default function ProfilePage() {
                                 `+${country.code}`.includes(query)
                               );
                             }).length === 0 && (
-                              <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                                No countries found
-                              </div>
-                            )}
+                                <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                                  No countries found
+                                </div>
+                              )}
                           </div>
                         </div>
                       </>

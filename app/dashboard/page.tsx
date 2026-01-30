@@ -4,8 +4,10 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { FlameIcon, PlayIcon, ArrowRightIcon, BookOpenIcon, GlobeIcon, BriefcaseIcon, UserIcon, ShoppingBagIcon, GraduationCapIcon, BookIcon, MenuIcon } from 'lucide-react';
 import MobileSidebar from '@/components/mobile-sidebar';
+import { useHeader } from '@/components/header-context';
 import ThemeToggle from '@/components/theme-toggle';
 import { useTheme } from '@/lib/theme-context';
+import { api } from '@/lib/api';
 
 interface DashboardData {
   dueToday: number;
@@ -66,44 +68,52 @@ export default function DashboardPage() {
   const { isDarkMode } = useTheme();
   const progressBorderRef = useRef<HTMLDivElement>(null);
 
+  // Header Context
+  const { setHeaderContent } = useHeader();
+  const [isMobile, setIsMobile] = useState(false);
+
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      router.push('/login');
-      return;
-    }
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      try {
-        setUser(JSON.parse(userData));
-      } catch (e) {
-        // Invalid user data
-      }
+  useEffect(() => {
+    if (isMobile) {
+      setHeaderContent(
+        <div className="flex items-center justify-between w-full h-16 px-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 md:hidden">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              <MenuIcon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            {data && (
+              <div className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 px-3 py-1 rounded-full text-sm font-semibold">
+                {formatTime(data.timeSpentToday)}
+              </div>
+            )}
+            <ThemeToggle />
+          </div>
+        </div>
+      );
+    } else {
+      setHeaderContent(null); // Use default navbar on desktop
     }
+    return () => setHeaderContent(null);
+  }, [setHeaderContent, data, sidebarOpen, isMobile]);
 
+
+  useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-        const response = await fetch(`${apiUrl}/api/v1/dashboard`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json',
-          },
-        });
-
-        if (response.status === 401) {
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user');
-          router.push('/login');
-          return;
-        }
-
-        if (!response.ok) {
-          throw new Error('Failed to load dashboard');
-        }
-
-        const dashboardData = await response.json();
+        const dashboardData = await api.get<DashboardData>('/api/v1/dashboard');
         setData(dashboardData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -114,26 +124,31 @@ export default function DashboardPage() {
 
     const fetchDecks = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-        const response = await fetch(`${apiUrl}/api/v1/decks?per_page=4`, {
-          headers: {
-            'Accept': 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to load decks');
-        }
-
-        const decksData = await response.json();
-        // Handle paginated response
-        setDecks(decksData.data || decksData);
+        const decksData = await api.get<{ data: Deck[] } | Deck[]>('/api/v1/decks?per_page=4');
+        setDecks(Array.isArray(decksData) ? decksData : decksData.data || []);
       } catch (err) {
         console.error('Failed to load decks:', err);
       } finally {
         setDecksLoading(false);
       }
     };
+
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    // Load user from local storage immediately to avoid layout shift if possible, 
+    // though real verification happens via API 401 check inside api.ts
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      try {
+        setUser(JSON.parse(userData));
+      } catch (e) {
+        // Invalid user data
+      }
+    }
 
     fetchDashboard();
     fetchDecks();
@@ -240,8 +255,8 @@ export default function DashboardPage() {
       return { streakDays: 0, recentDays: [] };
     }
 
-    // Get last 5 days (most recent first, reverse to get chronological order)
-    const recentDays = [...data.chartData].reverse().slice(-5);
+    // Get last 7 days
+    const recentDays = data.chartData.slice(-7);
 
     // Calculate streak: consecutive days from today backwards with activity
     // Activity = reviews > 0 OR focusMinutes > 0
@@ -306,27 +321,9 @@ export default function DashboardPage() {
       />
 
       <div className="max-w-md mx-auto md:max-w-4xl">
-        {/* Mobile Header with Menu Button */}
-        <div className="md:hidden px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 sticky top-0 z-30">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              <MenuIcon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-            </button>
-            <div className="flex items-center gap-2">
-              <div className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 px-3 py-1 rounded-full text-sm font-semibold">
-                {formatTime(data.timeSpentToday)}
-              </div>
-              <ThemeToggle />
-            </div>
-          </div>
-        </div>
-
         {/* User Profile Section */}
         <div className="px-4 pt-4 pb-2 md:pt-8">
-            <div className="hidden md:flex items-center gap-3 mb-4">
+          <div className="hidden md:flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold text-lg">
               {user?.name?.charAt(0) || 'U'}
             </div>
@@ -384,13 +381,13 @@ export default function DashboardPage() {
                 ? streakDays >= 7
                   ? 'Amazing! You\'re on fire! 🔥'
                   : streakDays >= 3
-                  ? 'Great progress! Keep it up!'
-                  : 'Good start! Build your daily habit!'
+                    ? 'Great progress! Keep it up!'
+                    : 'Good start! Build your daily habit!'
                 : 'Complete reviews or focus sessions today to start your streak!'}
             </div>
 
             {/* Daily Progress Indicators */}
-            <div className="flex justify-between pb-2">
+            <div className="flex justify-between pb-2 gap-1">
               {recentDays.length > 0 ? (
                 recentDays.map((day, idx) => {
                   const hasActivity = (day.reviews > 0 || day.focusMinutes > 0);
@@ -400,7 +397,7 @@ export default function DashboardPage() {
                   // Get day name from label (e.g., "Jan 24" -> calculate day of week)
                   const getDayName = (label: string, index: number) => {
                     if (!label) {
-                      const daysAgo = 4 - index;
+                      const daysAgo = (recentDays.length - 1) - index;
                       const date = new Date();
                       date.setDate(date.getDate() - daysAgo);
                       return date.toLocaleDateString('en-US', { weekday: 'short' });
@@ -417,40 +414,40 @@ export default function DashboardPage() {
                       // Fallback
                     }
                     // Fallback: calculate from index
-                    const daysAgo = 4 - index;
+                    const daysAgo = (recentDays.length - 1) - index;
                     const date = new Date();
                     date.setDate(date.getDate() - daysAgo);
                     return date.toLocaleDateString('en-US', { weekday: 'short' });
                   };
 
                   const dayName = getDayName(day.label || '', idx);
+                  // Hide first 2 days on mobile (show 5), show all 7 on desktop
+                  // recentDays has 7 items. idx 0,1 hidden on mobile.
+                  const visibilityClass = idx < (recentDays.length - 5) ? 'hidden md:flex' : 'flex';
 
                   return (
                     <div
                       key={idx}
-                      className={`flex flex-col items-center gap-1.5 flex-1 ${
-                        isToday ? 'bg-teal-400/20 rounded-lg' : ''
-                      }`}
+                      className={`${visibilityClass} flex-col items-center gap-1.5 flex-1 ${isToday ? 'bg-teal-400/20 rounded-lg' : ''
+                        }`}
                       title={`${day.label || dayName}: ${day.reviews} reviews, ${formatTime(timeMinutes)} focus`}
                     >
-                      <div className={`text-xs font-medium ${
-                        isToday
-                          ? 'font-bold text-white'
-                          : hasActivity
-                            ? 'text-teal-100'
-                            : 'text-teal-100'
-                      }`}>
+                      <div className={`text-xs font-medium ${isToday
+                        ? 'font-bold text-white'
+                        : hasActivity
+                          ? 'text-teal-100'
+                          : 'text-teal-100'
+                        }`}>
                         {dayName}
                       </div>
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
-                        isToday && hasActivity
-                          ? 'bg-yellow-400 text-yellow-900 border-2 border-yellow-300 shadow-lg scale-105'
-                          : isToday && !hasActivity
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${isToday && hasActivity
+                        ? 'bg-yellow-400 text-yellow-900 border-2 border-yellow-300 shadow-lg scale-105'
+                        : isToday && !hasActivity
                           ? 'bg-teal-300/40 text-white border-2 border-teal-200'
                           : hasActivity
-                          ? 'bg-teal-100 text-teal-800 border border-teal-300 hover:bg-teal-200'
-                          : 'bg-teal-50 text-teal-600 border border-teal-200'
-                      }`}>
+                            ? 'bg-teal-100 text-teal-800 border border-teal-300 hover:bg-teal-200'
+                            : 'bg-teal-50 text-teal-600 border border-teal-200'
+                        }`}>
                         {hasActivity ? formatTime(timeMinutes) : '—'}
                       </div>
                     </div>
@@ -458,32 +455,31 @@ export default function DashboardPage() {
                 })
               ) : (
                 // Fallback if no chart data
-                Array.from({ length: 5 }).map((_, idx) => {
-                  const daysAgo = 4 - idx;
+                Array.from({ length: 7 }).map((_, idx) => {
+                  const totalDays = 7;
+                  const daysAgo = (totalDays - 1) - idx;
                   const date = new Date();
                   date.setDate(date.getDate() - daysAgo);
                   const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-                  const isToday = idx === 4;
+                  const isToday = idx === totalDays - 1;
+                  const visibilityClass = idx < (totalDays - 5) ? 'hidden md:flex' : 'flex';
 
                   return (
                     <div
                       key={idx}
-                      className={`flex flex-col items-center gap-1.5 flex-1 ${
-                        isToday ? 'bg-teal-400/20 rounded-lg p-2' : ''
-                      }`}
+                      className={`${visibilityClass} flex-col items-center gap-1.5 flex-1 ${isToday ? 'bg-teal-400/20 rounded-lg p-2' : ''
+                        }`}
                     >
-                      <div className={`text-xs font-medium ${
-                        isToday
-                          ? 'font-bold text-teal-100'
-                          : 'text-gray-600'
-                      }`}>
+                      <div className={`text-xs font-medium ${isToday
+                        ? 'font-bold text-teal-100'
+                        : 'text-gray-600'
+                        }`}>
                         {dayName}
                       </div>
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xs font-semibold ${
-                        isToday
-                          ? 'bg-teal-300/40 text-white border-2 border-teal-200'
-                          : 'bg-teal-50 text-teal-600 border border-teal-200'
-                      }`}>
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xs font-semibold ${isToday
+                        ? 'bg-teal-300/40 text-white border-2 border-teal-200'
+                        : 'bg-teal-50 text-teal-600 border border-teal-200'
+                        }`}>
                         —
                       </div>
                     </div>

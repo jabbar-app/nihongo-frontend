@@ -26,4 +26,9 @@ export const faqs: IFaq[] = [
         answer:
             "Reading lets you save text you’re studying and track time spent reading. Pomodoro sessions help you stay focused and show up on your dashboard progress.",
     },
+    {
+        question: "What is Practice conversation?",
+        answer:
+            "Practice lets you chat in Japanese with AI. Use saved articles or conversations as context, or start a free conversation. You get feedback on your messages and sessions are tracked on your dashboard.",
+    },
 ];

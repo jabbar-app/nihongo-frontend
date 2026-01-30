@@ -6,6 +6,7 @@ import LenisScroll from "@/components/lenis";
 import Footer from "@/components/footer";
 import BottomNav from "@/components/bottom-nav";
 import { ThemeProvider } from "@/lib/theme-context";
+import { HeaderProvider } from "@/components/header-context";
 
 const inter = Inter({
     variable: "--font-sans",
@@ -84,17 +85,17 @@ export default function RootLayout({
             </head>
             <body>
                 <ThemeProvider>
-                    <LenisScroll />
-                    <div className="hidden md:block">
+                    <HeaderProvider>
+                        <LenisScroll />
                         <Navbar />
-                    </div>
-                    {children}
-                    <div className="hidden md:block">
-                        <Footer />
-                    </div>
-                    <div className="md:hidden">
-                        <BottomNav />
-                    </div>
+                        {children}
+                        <div className="hidden md:block">
+                            <Footer />
+                        </div>
+                        <div className="md:hidden">
+                            <BottomNav />
+                        </div>
+                    </HeaderProvider>
                 </ThemeProvider>
             </body>
         </html>

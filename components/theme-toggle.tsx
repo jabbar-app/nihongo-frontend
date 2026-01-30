@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { MoonIcon, SunIcon } from 'lucide-react';
 import { useTheme } from '@/lib/theme-context';
 
@@ -10,6 +11,12 @@ interface ThemeToggleProps {
 
 export default function ThemeToggle({ className = '', size = 'md' }: ThemeToggleProps) {
   const { isDarkMode, toggleTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const sizeClasses = {
     sm: 'w-4 h-4',
@@ -20,6 +27,18 @@ export default function ThemeToggle({ className = '', size = 'md' }: ThemeToggle
   const handleClick = () => {
     toggleTheme();
   };
+
+  // Render a placeholder or the button with neutral state until mounted
+  if (!mounted) {
+    return (
+      <button
+        className={`p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${className}`}
+        aria-label="Toggle theme"
+      >
+        <div className={sizeClasses[size]} />
+      </button>
+    );
+  }
 
   return (
     <button

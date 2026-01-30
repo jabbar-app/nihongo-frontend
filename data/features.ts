@@ -1,4 +1,4 @@
-import { BookOpenIcon, BrainIcon, SparklesIcon, TimerIcon, ListTodoIcon, RepeatIcon } from "lucide-react";
+import { BookOpenIcon, BrainIcon, SparklesIcon, TimerIcon, ListTodoIcon, RepeatIcon, MessageSquareIcon } from "lucide-react";
 import { IFeature } from "../types";
 
 export const features: IFeature[] = [
@@ -7,7 +7,7 @@ export const features: IFeature[] = [
         description:
             "A focused review queue that schedules cards at the right time so you remember more with less effort.",
         icon: RepeatIcon,
-        cardBg: "bg-orange-100",
+        cardBg: "bg-orange-100 dark:bg-orange-900/30",
         iconBg: "bg-orange-500"
     },
     {
@@ -15,7 +15,7 @@ export const features: IFeature[] = [
         description:
             "Browse curated decks (JLPT + more) and study in an order that makes sense.",
         icon: BookOpenIcon,
-        cardBg: "bg-green-100",
+        cardBg: "bg-green-100 dark:bg-green-900/30",
         iconBg: "bg-green-500"
     },
     {
@@ -23,7 +23,7 @@ export const features: IFeature[] = [
         description:
             "Create your own mnemonic or generate suggestions to make tough words finally click.",
         icon: BrainIcon,
-        cardBg: "bg-indigo-100",
+        cardBg: "bg-indigo-100 dark:bg-indigo-900/30",
         iconBg: "bg-indigo-500"
     },
     {
@@ -32,15 +32,23 @@ export const features: IFeature[] = [
             "Quick wins, momentum tasks, and a main quest—so you always know what to do next.",
         icon: ListTodoIcon,
 
-        cardBg: "bg-pink-100",
+        cardBg: "bg-pink-100 dark:bg-pink-900/30",
         iconBg: "bg-pink-500"
+    },
+    {
+        title: "Practice conversation",
+        description:
+            "Chat in Japanese with AI—use articles or free conversation. Get feedback and track sessions.",
+        icon: MessageSquareIcon,
+        cardBg: "bg-teal-100 dark:bg-teal-900/20/30",
+        iconBg: "bg-teal-500"
     },
     {
         title: "Reading + time tracking",
         description:
             "Save anything you read (articles, conversations, stories) and track sessions automatically.",
         icon: TimerIcon,
-        cardBg: "bg-lime-100",
+        cardBg: "bg-lime-100 dark:bg-lime-900/30",
         iconBg: "bg-lime-500"
     },
     {
@@ -48,7 +56,7 @@ export const features: IFeature[] = [
         description:
             "Use AI to generate mnemonic ideas—your learning stays in your control.",
         icon: SparklesIcon,
-        cardBg: "bg-gray-50",
-        iconBg: "bg-orange-500",
+        cardBg: "bg-gray-100 dark:bg-gray-700/50",
+        iconBg: "bg-teal-500"
     },
 ]

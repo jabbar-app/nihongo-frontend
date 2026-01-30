@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon, BookOpenIcon, GraduationCapIcon, BookIcon } from 'lucide-react';
+import { api } from '@/lib/api';
 import Card from '@/components/ui/card';
 import Button from '@/components/ui/button';
 
@@ -26,20 +27,9 @@ export default function DecksPage() {
     useEffect(() => {
         const fetchDecks = async () => {
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-                const response = await fetch(`${apiUrl}/api/v1/decks`, {
-                    headers: {
-                        'Accept': 'application/json',
-                    },
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to load decks');
-                }
-
-                const data = await response.json();
+                const data = await api.get<{ data: Deck[] } | Deck[]>('/api/v1/decks');
                 // Handle paginated response
-                setDecks(data.data || data);
+                setDecks(Array.isArray(data) ? data : data.data || []);
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'An error occurred');
             } finally {
