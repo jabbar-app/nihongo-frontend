@@ -605,7 +605,7 @@ export default function PracticePage() {
 
               {/* Free Conversation Option */}
               <Card
-                className={`p-4 mb-4 cursor-pointer hover:shadow-md transition-shadow dark:bg-gray-800 dark:border-gray-700 ${startingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`p-4 mb-4 cursor-pointer hover:shadow-md transition-shadow dark:bg-gray-800 dark:border dark:border-gray-600 ${startingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
                 onClick={() => !startingSession && startSession(null, null)}
               >
                 <div className="flex items-center gap-3">
@@ -631,7 +631,7 @@ export default function PracticePage() {
                   {readings.map((reading) => (
                     <Card
                       key={reading.id}
-                      className={`p-4 cursor-pointer hover:shadow-md transition-shadow dark:bg-gray-800 dark:border-gray-700 ${startingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      className={`p-4 cursor-pointer hover:shadow-md transition-shadow dark:bg-gray-800 dark:border dark:border-gray-600 ${startingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
                       onClick={() => !startingSession && startSession(reading)}
                     >
                       <div className="flex items-start gap-3">
@@ -675,7 +675,7 @@ export default function PracticePage() {
                   ))}
                 </div>
               ) : (
-                <Card className="p-4 text-center text-gray-500 dark:text-gray-400 dark:bg-gray-800 dark:border-gray-700">
+                <Card className="p-4 text-center text-gray-500 dark:text-gray-400 dark:bg-gray-800 dark:border dark:border-gray-600">
                   <p>No articles or conversations available.</p>
                   <Button onClick={openAddModal} size="sm" className="mt-3 flex items-center gap-2 mx-auto">
                     <PlusIcon className="w-4 h-4" />
@@ -687,7 +687,7 @@ export default function PracticePage() {
               {/* Delete Confirmation Modal */}
               {deleteConfirmReading && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={closeDeleteConfirm}>
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full border border-gray-200 dark:border-gray-700" onClick={(e) => e.stopPropagation()}>
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full border border-gray-200 dark:border dark:border-gray-600" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Delete material?</h3>
                       <button
@@ -723,7 +723,7 @@ export default function PracticePage() {
               {/* Material Create/Edit Modal */}
               {showMaterialModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={closeMaterialModal}>
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col border border-gray-200 dark:border-gray-700" onClick={(e) => e.stopPropagation()}>
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col border border-gray-200 dark:border dark:border-gray-600" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                         {editingReading ? 'Edit Material' : 'Add New Material'}

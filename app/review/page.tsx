@@ -92,11 +92,21 @@ export default function ReviewPage() {
   };
 
   const meaningMatchesCard = (input: string, card: CardContent): boolean => {
-    const n = input.trim().toLowerCase();
-    if (!n) return false;
-    const id = (card.meaning_id || '').trim().toLowerCase();
-    const en = (card.meaning_en || '').trim().toLowerCase();
-    return n === id || n === en;
+    const normalize = (text: string) => text.toLowerCase().trim();
+    const nInput = normalize(input);
+    if (!nInput) return false;
+
+    const checkMeanings = (text: string | null) => {
+      if (!text) return false;
+      // Split by /, (, ), comma, semicolon, Japanese comma
+      // This allows "pagi (AM)" -> ["pagi", "am"]
+      // "siang/sore" -> ["siang", "sore"]
+      // "to eat, to feed" -> ["to eat", "to feed"]
+      const candidates = text.split(/[/()、,;]/).map(normalize).filter(s => s.length > 0);
+      return candidates.some(c => c === nInput);
+    };
+
+    return checkMeanings(card.meaning_id) || checkMeanings(card.meaning_en);
   };
 
   const handeInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -390,7 +400,7 @@ export default function ReviewPage() {
     if (nextQueue.length > 0) {
       setCurrentCard(nextQueue[0]);
     } else {
-      router.push('/dashboard');
+      // Queue empty - summary will show
     }
   }
 
@@ -431,7 +441,7 @@ export default function ReviewPage() {
         setCurrentCard(nextQueue[0]);
         triggerHaptic('light');
       } else {
-        router.push('/dashboard');
+        // Queue empty, component will re-render and show summary screen
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -461,7 +471,8 @@ export default function ReviewPage() {
       try {
         setLoading(true);
         setError('');
-        const data = await api.get<{ cards: CardContent[] }>('/api/v1/review/queue?limit=10');
+        // Increase limit to 20 for "continue" batches
+        const data = await api.get<{ cards: CardContent[] }>('/api/v1/review/queue?limit=20');
 
         const items = data.cards || [];
         setQueue(items);
@@ -474,8 +485,33 @@ export default function ReviewPage() {
         setLoading(false);
       }
     };
-    fetchQueue();
+
+    if (token) {
+      fetchQueue();
+    }
+
+    // expose fetchQueue to be called later
+    (window as any).refreshReviewQueue = fetchQueue;
   }, [router]);
+
+  // Re-fetch queue handler
+  const handleContinueSession = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const data = await api.get<{ cards: CardContent[] }>('/api/v1/review/queue?limit=20');
+
+      const items = data.cards || [];
+      setQueue(items);
+      if (items.length > 0) {
+        setCurrentCard(items[0]);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchStreak = async () => {
@@ -718,18 +754,68 @@ export default function ReviewPage() {
   }
 
   if (!queue || queue.length === 0) {
+    if (loading) return null; // Wait for loading state
+
+    // If session stats are 0, it means we just entered the page and there were no cards
+    // Or we finished everything.
+    const isSessionFinished = sessionStats.total > 0;
+
     return (
-      <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-md mx-auto p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-8 text-center shadow-sm">
-            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">No cards to review!</h2>
-            <p className="text-gray-500 dark:text-gray-400 mb-6">You're all caught up. Great job!</p>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-full font-medium hover:bg-blue-700 dark:hover:bg-blue-600"
-            >
-              Go to Dashboard
-            </button>
+      <main className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl overflow-hidden">
+          <div className="p-8 text-center">
+            <div className="w-16 h-16 bg-teal-100 dark:bg-teal-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircleIcon className="w-8 h-8 text-teal-600 dark:text-teal-400" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">
+              {isSessionFinished ? 'Session Complete!' : 'All Caught Up!'}
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-8">
+              {isSessionFinished
+                ? "You've finished your current batch of reviews."
+                : "You have no cards due for review right now."}
+            </p>
+
+            {/* Stats Summary */}
+            {isSessionFinished && (
+              <div className="grid grid-cols-3 gap-4 mb-8">
+                <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Accuracy</div>
+                  <div className="font-bold text-gray-900 dark:text-white text-lg">
+                    {Math.round((sessionStats.correct / sessionStats.total) * 100)}%
+                  </div>
+                </div>
+                <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Reviews</div>
+                  <div className="font-bold text-gray-900 dark:text-white text-lg">
+                    {sessionStats.total}
+                  </div>
+                </div>
+                <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Time</div>
+                  <div className="font-bold text-gray-900 dark:text-white text-lg">
+                    {formatSessionTime(Date.now() - sessionStats.startTime)}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <button
+                onClick={handleContinueSession}
+                className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <SparklesIcon className="w-5 h-5" />
+                Continue Session
+              </button>
+
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="w-full py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-xl font-medium transition-colors"
+              >
+                Back to Dashboard
+              </button>
+            </div>
           </div>
         </div>
       </main>

@@ -213,7 +213,7 @@ export default function PracticeHistoryPage() {
                 {sessions.map((session) => (
                   <Card
                     key={session.id}
-                    className="p-4 cursor-pointer hover:shadow-md transition-shadow dark:bg-gray-800 dark:border-gray-700"
+                    className="p-4 cursor-pointer hover:shadow-md transition-shadow dark:bg-gray-800 dark:border dark:border-gray-600"
                     onClick={() => fetchSessionDetails(session.id)}
                   >
                     <div className="flex items-start gap-3">
@@ -262,7 +262,7 @@ export default function PracticeHistoryPage() {
                 ))}
               </div>
             ) : (
-              <Card className="p-8 text-center dark:bg-gray-800 dark:border-gray-700">
+              <Card className="p-8 text-center dark:bg-gray-800 dark:border dark:border-gray-600">
                 <MessageSquareIcon className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
                 <p className="text-gray-500 dark:text-gray-400 mb-4">No practice sessions yet</p>
                 <button
@@ -287,7 +287,7 @@ export default function PracticeHistoryPage() {
               <span>Back to list</span>
             </button>
 
-            <Card className="p-4 mb-4 dark:bg-gray-800 dark:border-gray-700">
+            <Card className="p-4 mb-4 dark:bg-gray-800 dark:border dark:border-gray-600">
               <div className="mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                   {selectedSession.title || selectedSession.reading?.title || 'Free Conversation'}
@@ -332,7 +332,7 @@ export default function PracticeHistoryPage() {
                       <div
                         className={`rounded-2xl px-4 py-2 ${msg.role === 'user'
                           ? 'bg-teal-600 text-white'
-                          : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
+                          : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border dark:border-gray-600'
                           }`}
                       >
                         <div className="whitespace-pre-wrap">{msg.content}</div>
@@ -347,7 +347,7 @@ export default function PracticeHistoryPage() {
                   </div>
                 ))
               ) : (
-                <Card className="p-4 text-center text-gray-500 dark:text-gray-400 dark:bg-gray-800 dark:border-gray-700">
+                <Card className="p-4 text-center text-gray-500 dark:text-gray-400 dark:bg-gray-800 dark:border dark:border-gray-600">
                   No messages in this session
                 </Card>
               )}
