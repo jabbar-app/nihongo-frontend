@@ -114,6 +114,16 @@ export default function DashboardPage() {
     const fetchDashboard = async () => {
       try {
         const dashboardData = await api.get<DashboardData>('/api/v1/dashboard');
+        // Normalize chartData in case API returns snake_case (focus_minutes, etc.)
+        if (dashboardData.chartData?.length) {
+          dashboardData.chartData = dashboardData.chartData.map((d) => ({
+            label: d.label,
+            reviews: d.reviews ?? 0,
+            accuracy: d.accuracy ?? null,
+            focusMinutes: (d as { focusMinutes?: number; focus_minutes?: number }).focusMinutes
+              ?? (d as { focus_minutes?: number }).focus_minutes ?? 0,
+          }));
+        }
         setData(dashboardData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -139,7 +149,7 @@ export default function DashboardPage() {
       return;
     }
 
-    // Load user from local storage immediately to avoid layout shift if possible, 
+    // Load user from local storage immediately to avoid layout shift if possible,
     // though real verification happens via API 401 check inside api.ts
     const userData = localStorage.getItem('user');
     if (userData) {
@@ -152,6 +162,15 @@ export default function DashboardPage() {
 
     fetchDashboard();
     fetchDecks();
+
+    // Refetch dashboard when user returns to this page/tab so indicators stay in sync
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && token) {
+        fetchDashboard();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, [router]);
 
   // Debug border color for progress section
@@ -390,9 +409,17 @@ export default function DashboardPage() {
             <div className="flex justify-between pb-2 gap-1">
               {recentDays.length > 0 ? (
                 recentDays.map((day, idx) => {
-                  const hasActivity = (day.reviews > 0 || day.focusMinutes > 0);
+                  const reviews = day.reviews ?? 0;
+                  const focusMinutes = day.focusMinutes ?? 0;
+                  const hasActivity = reviews > 0 || focusMinutes > 0;
                   const isToday = idx === recentDays.length - 1;
-                  const timeMinutes = day.focusMinutes || 0;
+
+                  // Display: focus time if any, else review count, else "—"
+                  const circleLabel = focusMinutes > 0
+                    ? formatTime(focusMinutes)
+                    : reviews > 0
+                      ? `${reviews}`
+                      : '—';
 
                   // Get day name from label (e.g., "Jan 24" -> calculate day of week)
                   const getDayName = (label: string, index: number) => {
@@ -430,7 +457,7 @@ export default function DashboardPage() {
                       key={idx}
                       className={`${visibilityClass} flex-col items-center gap-1.5 flex-1 ${isToday ? 'bg-teal-400/20 rounded-lg' : ''
                         }`}
-                      title={`${day.label || dayName}: ${day.reviews} reviews, ${formatTime(timeMinutes)} focus`}
+                      title={`${day.label || dayName}: ${reviews} reviews, ${focusMinutes > 0 ? formatTime(focusMinutes) : '0'} focus`}
                     >
                       <div className={`text-xs font-medium ${isToday
                         ? 'font-bold text-white'
@@ -448,7 +475,7 @@ export default function DashboardPage() {
                             ? 'bg-teal-100 text-teal-800 border border-teal-300 hover:bg-teal-200'
                             : 'bg-teal-50 text-teal-600 border border-teal-200'
                         }`}>
-                        {hasActivity ? formatTime(timeMinutes) : '—'}
+                        {circleLabel}
                       </div>
                     </div>
                   );

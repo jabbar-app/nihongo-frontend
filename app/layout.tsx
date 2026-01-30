@@ -68,15 +68,13 @@ export default function RootLayout({
                             (function() {
                                 try {
                                     const darkMode = localStorage.getItem('darkMode');
-                                    if (darkMode === 'false') {
-                                        document.documentElement.classList.remove('dark');
-                                    } else {
-                                        // Default to dark mode if no preference or 'true'
+                                    if (darkMode === 'true') {
                                         document.documentElement.classList.add('dark');
+                                    } else {
+                                        document.documentElement.classList.remove('dark');
                                     }
                                 } catch (e) {
-                                    // Default to dark mode on error
-                                    document.documentElement.classList.add('dark');
+                                    document.documentElement.classList.remove('dark');
                                 }
                             })();
                         `,

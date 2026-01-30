@@ -15,17 +15,17 @@ const THEME_STORAGE_KEY = 'darkMode';
 // Helper function to get initial theme from localStorage (safe for SSR)
 function getInitialTheme(): boolean {
   if (typeof window === 'undefined') {
-    return true; // Default to dark mode on server
+    return false; // Default to light mode on server
   }
-  
+
   try {
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
     if (savedTheme !== null) {
       return savedTheme === 'true';
     }
-    return true; // Default to dark mode if no saved preference
+    return false; // Default to light mode if no saved preference
   } catch (error) {
-    return true; // Default to dark mode on error
+    return false; // Default to light mode on error
   }
 }
 
@@ -39,19 +39,19 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Check if document already has dark class (from script)
     const hasDarkClass = document.documentElement.classList.contains('dark');
-    
+
     // Sync state with document if they don't match
     if (hasDarkClass !== isDarkMode) {
       setIsDarkMode(hasDarkClass);
     }
-    
+
     setMounted(true);
   }, []); // Only run on mount
 
   // Sync document class when isDarkMode changes
   useEffect(() => {
     if (!mounted) return; // Don't run until mounted
-    
+
     // Ensure document class matches state
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -63,7 +63,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const setTheme = (isDark: boolean) => {
     setIsDarkMode(isDark);
     localStorage.setItem(THEME_STORAGE_KEY, isDark.toString());
-    
+
     if (isDark) {
       document.documentElement.classList.add('dark');
     } else {

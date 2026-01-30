@@ -73,15 +73,48 @@ export default function ReviewPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [showAnswer, setShowAnswer] = useState(false);
-  const [showKana, setShowKana] = useState(false);
+  const [hintState, setHintState] = useState<'none' | 'kana' | 'meaning'>('none');
   const [kanaInput, setKanaInput] = useState('');
   const [kanaCorrect, setKanaCorrect] = useState<boolean | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [inputError, setInputError] = useState(''); // New state for input validation
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+
+  // ... (existing state) ...
+
+  // Helper: input is Japanese (kana/kanji) → we check kana; otherwise we check meaning
+  const isJapanese = (text: string) => {
+    return /^[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\uff00-\uff9f\u4e00-\u9faf\u3400-\u4dbf\n\r\s\d～！、。？]*$/.test(text);
+  };
+
+  const meaningMatchesCard = (input: string, card: CardContent): boolean => {
+    const n = input.trim().toLowerCase();
+    if (!n) return false;
+    const id = (card.meaning_id || '').trim().toLowerCase();
+    const en = (card.meaning_en || '').trim().toLowerCase();
+    return n === id || n === en;
+  };
+
+  const handeInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setKanaInput(value);
+    if (inputError) setInputError('');
+  };
+
+  const toggleHint = () => {
+    setHintState(prev => {
+      if (prev === 'none') return 'kana';
+      if (prev === 'kana') return 'meaning';
+      return 'none';
+    });
+  };
+
+
+
 
   // Session statistics
   const [sessionStats, setSessionStats] = useState({
@@ -112,38 +145,40 @@ export default function ReviewPage() {
   // triggerHaptic, formatTime, formatSessionTime are defined outside component
 
 
-  function handleKanaCheck() {
+  function handleAnswerCheck() {
     if (!currentCard) return;
     const cardContent = currentCard;
-    const hasKanji = cardContent.kanji && cardContent.kanji.trim() !== '';
+    const trimmed = kanaInput.trim();
 
-    // If card has kanji and user has input, check the answer first
-    if (hasKanji && kanaInput.trim()) {
-      const normalized = kanaInput.trim().toLowerCase();
-      const correct = normalized === cardContent.kana.toLowerCase();
-
-      setKanaCorrect(correct);
-      setShowFeedback(true);
-
-      if (correct) {
-        triggerHaptic('light');
-      } else {
-        triggerHaptic('medium');
-      }
-
-      setTimeout(() => {
-        setShowAnswer(true);
-        setShowFeedback(false);
-      }, 1500);
-    } else if (!hasKanji) {
+    if (!trimmed) {
       setShowAnswer(true);
+      return;
     }
+
+    const inputIsJapanese = isJapanese(trimmed);
+    let correct: boolean;
+
+    if (inputIsJapanese) {
+      correct = trimmed.toLowerCase() === cardContent.kana.toLowerCase();
+    } else {
+      correct = meaningMatchesCard(trimmed, cardContent);
+    }
+
+    setKanaCorrect(correct);
+    setShowFeedback(true);
+    if (correct) triggerHaptic('light');
+    else triggerHaptic('medium');
+
+    setTimeout(() => {
+      setShowAnswer(true);
+      setShowFeedback(false);
+    }, 1500);
   }
 
   function handleKeyPress(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleKanaCheck();
+      handleAnswerCheck();
     }
   }
 
@@ -490,7 +525,7 @@ export default function ReviewPage() {
   useEffect(() => {
     if (currentCard) {
       setShowAnswer(false);
-      setShowKana(false);
+      setHintState('none'); // Reset hint
       setKanaInput('');
       setKanaCorrect(null);
       setShowFeedback(false);
@@ -531,13 +566,15 @@ export default function ReviewPage() {
   useEffect(() => {
     if (!currentCard || kanaCorrect !== null || showFeedback || !kanaInput.trim()) return;
     const cardContent = currentCard;
-    const hasKanji = cardContent.kanji && cardContent.kanji.trim() !== '';
-    if (!hasKanji) return;
-
-    const normalized = kanaInput.trim().toLowerCase();
-    const cardKana = cardContent.kana.toLowerCase();
-
-    if (normalized === cardKana) {
+    const trimmed = kanaInput.trim();
+    const inputIsJapanese = isJapanese(trimmed);
+    let correct: boolean;
+    if (inputIsJapanese) {
+      correct = trimmed.toLowerCase() === cardContent.kana.toLowerCase();
+    } else {
+      correct = meaningMatchesCard(trimmed, cardContent);
+    }
+    if (correct) {
       setKanaCorrect(true);
       setShowFeedback(true);
       setTimeout(() => {
@@ -706,6 +743,8 @@ export default function ReviewPage() {
   const cardContent = currentCard!;
   const progress = (sessionStats.total / (sessionStats.total + queue.length + (currentCard ? 0 : 0))) * 100; // rough estimate
   const hasKanji = cardContent.kanji && cardContent.kanji.trim() !== '';
+  // Prefer meaning_id (Indonesian), fallback to meaning_en (English) so we always show meaning when available
+  const displayMeaning = (cardContent.meaning_id && cardContent.meaning_id.trim()) ? cardContent.meaning_id : (cardContent.meaning_en && cardContent.meaning_en.trim()) ? cardContent.meaning_en : null;
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
@@ -774,24 +813,26 @@ export default function ReviewPage() {
                 : 'border-gray-200 dark:border-gray-700'
               }`}
           >
+
             {/* Top Row: Hint Button, Difficulty Badge, and Timer */}
             <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
-              {/* Show/Hide Kana Button */}
-              {hasKanji ? (
-                <button
-                  onClick={() => setShowKana(!showKana)}
-                  className="p-2 rounded-full hover:bg-orange-50 dark:hover:bg-gray-700 transition-colors"
-                  title={showKana ? "Hide reading hint" : "Show reading hint (kana)"}
-                >
-                  {showKana ? (
-                    <LightbulbOffIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                  ) : (
-                    <LightbulbIcon className="w-5 h-5 text-orange-500 dark:text-orange-400" />
-                  )}
-                </button>
-              ) : (
-                <div></div>
-              )}
+              {/* Show/Hide Hint Button (Updated) */}
+              <button
+                onClick={toggleHint}
+                className="p-2 rounded-full hover:bg-orange-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-1 z-20"
+                title="Cycle hints (Kana -> Meaning)"
+              >
+                {hintState !== 'none' ? (
+                  <LightbulbIcon className="w-5 h-5 text-orange-500 dark:text-orange-400" />
+                ) : (
+                  <LightbulbOffIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                )}
+                {hintState !== 'none' && (
+                  <span className="text-xs font-bold text-orange-600 dark:text-orange-400 uppercase tracking-tighter">
+                    {hintState}
+                  </span>
+                )}
+              </button>
 
               {/* Difficulty Badge */}
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${cardDifficulty === 'new'
@@ -812,7 +853,7 @@ export default function ReviewPage() {
 
             {/* Tags */}
             {cardContent.tags && cardContent.tags.length > 0 && (
-              <div className="absolute top-4 left-4 flex flex-wrap gap-2 max-w-[calc(100%-8rem)]">
+              <div className="absolute top-14 left-4 flex flex-wrap gap-2 max-w-[calc(100%-8rem)] z-0">
                 {cardContent.tags.map((tag, idx) => (
                   <span
                     key={idx}
@@ -832,7 +873,7 @@ export default function ReviewPage() {
                       e.stopPropagation();
                       playAudio(cardContent.audio_word_url!);
                     }}
-                    className="absolute top-14 right-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    className="absolute top-14 right-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors z-20"
                   >
                     <Volume2Icon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                   </button>
@@ -841,47 +882,56 @@ export default function ReviewPage() {
 
               {!showAnswer ? (
                 <div className="text-center space-y-6 pt-12">
-                  {/* Word Display (Question) */}
-                  <div className="space-y-4">
+                  {/* Word Display (Question) + Hint directly below */}
+                  <div className="space-y-2">
                     {hasKanji ? (
                       <div
-                        className="text-6xl font-bold mb-4 text-gray-900 dark:text-white"
+                        className="text-6xl font-bold text-gray-900 dark:text-white"
                         style={{ fontFamily: 'serif' }}
                       >
                         {cardContent.kanji}
                       </div>
                     ) : (
-                      <div className="text-5xl font-bold mb-6 text-gray-900 dark:text-white">
+                      <div className="text-5xl font-bold text-gray-900 dark:text-white">
                         {cardContent.kana}
+                      </div>
+                    )}
+                    {/* Hint text below the word only — does not overlap */}
+                    {hintState !== 'none' && (
+                      <div className="text-center mt-2">
+                        <span className="inline-block bg-orange-50 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 px-3 py-1.5 rounded-lg text-sm font-medium border border-orange-200 dark:border-orange-800/50">
+                          {hintState === 'kana' ? cardContent.kana : (displayMeaning ?? '—')}
+                        </span>
                       </div>
                     )}
                   </div>
 
-                  {/* Kana Input */}
-                  {hasKanji && (
-                    <div className="space-y-3">
-                      <Input
-                        ref={inputRef}
-                        type="text"
-                        label="Type the reading (kana):"
-                        value={kanaInput}
-                        onChange={(e) => {
-                          setKanaInput(e.target.value);
-                          setKanaCorrect(null);
-                          setShowFeedback(false);
-                        }}
-                        onKeyPress={handleKeyPress}
-                        placeholder="かなを入力"
-                        className={`text-center text-lg text-gray-900 dark:bg-gray-700 dark:text-white dark:border-gray-600 ${kanaCorrect === true
-                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                          : kanaCorrect === false
-                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                  {/* Answer input: kana (Japanese) or meaning (Latin) — app decides */}
+                  <div className="space-y-3">
+                    <Input
+                      ref={inputRef}
+                      type="text"
+                      label="Kana or meaning"
+                      value={kanaInput}
+                      onChange={handeInputChange}
+                      onKeyPress={handleKeyPress}
+                      placeholder="かな or meaning"
+                      className={`text-center text-lg text-gray-900 dark:bg-gray-700 dark:text-white dark:border-gray-600 ${kanaCorrect === true
+                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                        : kanaCorrect === false
+                          ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                          : inputError
+                            ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
                             : ''
-                          }`}
-                        disabled={showAnswer || showFeedback}
-                      />
-                    </div>
-                  )}
+                        }`}
+                      disabled={showAnswer || showFeedback}
+                    />
+                    {inputError && (
+                      <div className="text-xs text-red-500 font-medium text-center animate-pulse">
+                        {inputError}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Action Buttons */}
                   <div className="flex gap-2 pt-2">
@@ -894,8 +944,8 @@ export default function ReviewPage() {
                       <SkipForwardIcon className="w-5 h-5" />
                     </Button>
                     <Button
-                      onClick={handleKanaCheck}
-                      disabled={(hasKanji && !kanaInput.trim()) || showFeedback}
+                      onClick={handleAnswerCheck}
+                      disabled={showFeedback}
                       className="flex-1"
                     >
                       Show Answer
@@ -925,13 +975,35 @@ export default function ReviewPage() {
                     )}
                   </div>
 
+
                   <div className="pt-6 border-t border-gray-100 dark:border-gray-700">
-                    <div className="text-2xl text-gray-800 dark:text-white mb-2">
-                      {cardContent.meaning_id}
+                    <div className="text-2xl text-gray-800 dark:text-white mb-2 font-serif">
+                      {displayMeaning ?? 'No meaning available'}
                     </div>
-                    {cardContent.meaning_en && (
-                      <div className="text-sm text-gray-500 dark:text-gray-400 italic">
+                    {cardContent.meaning_id && cardContent.meaning_en && cardContent.meaning_id.trim() !== cardContent.meaning_en.trim() && (
+                      <div className="text-sm text-gray-500 dark:text-gray-400 italic mb-4">
                         {cardContent.meaning_en}
+                      </div>
+                    )}
+
+                    {/* Example Sentence Section */}
+                    {cardContent.example_sentence_ja && (
+                      <div className="mt-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 text-left">
+                        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Example</div>
+                        <div className="text-lg text-gray-800 dark:text-gray-200 font-serif mb-2 leading-relaxed">
+                          {cardContent.example_sentence_ja}
+                        </div>
+                        {cardContent.example_sentence_id && (
+                          <details className="group">
+                            <summary className="cursor-pointer text-sm text-blue-600 dark:text-blue-400 font-medium hover:underline focus:outline-none list-none select-none">
+                              <span className="group-open:hidden">Show translation</span>
+                              <span className="hidden group-open:inline">Hide translation</span>
+                            </summary>
+                            <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 italic animate-in slide-in-from-top-1 fade-in">
+                              {cardContent.example_sentence_id}
+                            </div>
+                          </details>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1021,41 +1093,50 @@ export default function ReviewPage() {
               )}
             </div>
 
-            {/* Answer Buttons */}
+            {/* Answer Buttons (1–4) — inside card */}
             {showAnswer && !showFeedback && (
-              <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-4 px-4">
-                <button
-                  onClick={() => handleGrade('again')}
-                  disabled={submitting}
-                  className="flex-1 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 py-3 rounded-xl font-medium shadow-sm transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <div className="text-lg font-bold">Again</div>
-                  <div className="text-xs opacity-75">1</div>
-                </button>
-                <button
-                  onClick={() => handleGrade('hard')}
-                  disabled={submitting}
-                  className="flex-1 bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-300 py-3 rounded-xl font-medium shadow-sm transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <div className="text-lg font-bold">Hard</div>
-                  <div className="text-xs opacity-75">2</div>
-                </button>
-                <button
-                  onClick={() => handleGrade('good')}
-                  disabled={submitting}
-                  className="flex-1 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 py-3 rounded-xl font-medium shadow-sm transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <div className="text-lg font-bold">Good</div>
-                  <div className="text-xs opacity-75">3</div>
-                </button>
-                <button
-                  onClick={() => handleGrade('easy')}
-                  disabled={submitting}
-                  className="flex-1 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-300 py-3 rounded-xl font-medium shadow-sm transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <div className="text-lg font-bold">Easy</div>
-                  <div className="text-xs opacity-75">4</div>
-                </button>
+              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 px-4 pb-2">
+                <div className="grid grid-cols-4 gap-2 sm:gap-3">
+                  <button
+                    onClick={() => handleGrade('again')}
+                    disabled={submitting}
+                    className="group flex flex-col items-center justify-center min-h-[72px] py-3 px-2 rounded-xl bg-red-50/50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-900/40 hover:bg-red-100 dark:hover:bg-red-900/40 hover:border-red-300 dark:hover:border-red-800 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+                    title="Again (1)"
+                  >
+                    <span className="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-400 tabular-nums group-hover:scale-105 transition-transform">1</span>
+                    <span className="text-[10px] sm:text-xs font-semibold text-red-600/90 dark:text-red-400/90 uppercase tracking-wide mt-0.5">Again</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleGrade('hard')}
+                    disabled={submitting}
+                    className="group flex flex-col items-center justify-center min-h-[72px] py-3 px-2 rounded-xl bg-orange-50/50 dark:bg-orange-950/30 border border-orange-200/60 dark:border-orange-900/40 hover:bg-orange-100 dark:hover:bg-orange-900/40 hover:border-orange-300 dark:hover:border-orange-800 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+                    title="Hard (2)"
+                  >
+                    <span className="text-2xl sm:text-3xl font-black text-orange-600 dark:text-orange-400 tabular-nums group-hover:scale-105 transition-transform">2</span>
+                    <span className="text-[10px] sm:text-xs font-semibold text-orange-600/90 dark:text-orange-400/90 uppercase tracking-wide mt-0.5">Hard</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleGrade('good')}
+                    disabled={submitting}
+                    className="group flex flex-col items-center justify-center min-h-[72px] py-3 px-2 rounded-xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900/40 hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:border-blue-300 dark:hover:border-blue-800 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+                    title="Good (3)"
+                  >
+                    <span className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 tabular-nums group-hover:scale-105 transition-transform">3</span>
+                    <span className="text-[10px] sm:text-xs font-semibold text-blue-600/90 dark:text-blue-400/90 uppercase tracking-wide mt-0.5">Good</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleGrade('easy')}
+                    disabled={submitting}
+                    className="group flex flex-col items-center justify-center min-h-[72px] py-3 px-2 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 hover:border-emerald-300 dark:hover:border-emerald-800 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+                    title="Easy (4)"
+                  >
+                    <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums group-hover:scale-105 transition-transform">4</span>
+                    <span className="text-[10px] sm:text-xs font-semibold text-emerald-600/90 dark:text-emerald-400/90 uppercase tracking-wide mt-0.5">Easy</span>
+                  </button>
+                </div>
               </div>
             )}
           </Card>
@@ -1064,3 +1145,4 @@ export default function ReviewPage() {
     </main>
   );
 }
+
