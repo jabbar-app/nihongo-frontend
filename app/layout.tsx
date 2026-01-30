@@ -2,6 +2,7 @@ import { Inter, Urbanist } from "next/font/google";
 import "./globals.css";
 import { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import Navbar from "@/components/navbar";
 import LenisScroll from "@/components/lenis";
 import Footer from "@/components/footer";
@@ -121,6 +122,7 @@ export default function RootLayout({
                     </HeaderProvider>
                 </ThemeProvider>
                 <Analytics />
+                <SpeedInsights />
             </body>
         </html>
     );
