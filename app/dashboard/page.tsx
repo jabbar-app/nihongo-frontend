@@ -358,7 +358,7 @@ export default function DashboardPage() {
           {/* Current Course */}
           <button
             onClick={() => router.push('/history')}
-            className="w-full bg-white dark:bg-gray-800 rounded-2xl p-4 mb-4 shadow-sm hover:shadow-md transition-shadow text-left"
+            className="w-full bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 mb-4 shadow-sm hover:shadow-md transition-shadow text-left"
           >
             <div className="flex items-center justify-between mb-1">
               <div>
@@ -553,7 +553,7 @@ export default function DashboardPage() {
           {decksLoading ? (
             <div className="grid grid-cols-2 gap-3">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm animate-pulse">
+                <div key={i} className="bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 shadow-sm animate-pulse">
                   <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg mb-2"></div>
                   <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-1"></div>
                   <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
@@ -568,7 +568,7 @@ export default function DashboardPage() {
                   <button
                     key={deck.id}
                     onClick={() => handleDeckClick(deck)}
-                    className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow text-left"
+                    className="bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow text-left"
                   >
                     <div className={`w-10 h-10 ${bgColor} dark:opacity-80 rounded-lg flex items-center justify-center mb-2`}>
                       <Icon className={`w-5 h-5 ${iconColor}`} />
@@ -583,7 +583,7 @@ export default function DashboardPage() {
               })}
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm text-center text-gray-500 dark:text-gray-400 text-sm">
+            <div className="bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 shadow-sm text-center text-gray-500 dark:text-gray-400 text-sm">
               No decks available
             </div>
           )}
@@ -592,19 +592,19 @@ export default function DashboardPage() {
         {/* Stats Cards */}
         <div className="px-4 mb-4">
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
+            <div className="bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 shadow-sm">
               <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Due Today</div>
               <div className="text-2xl font-bold text-gray-900 dark:text-white">{data.dueToday}</div>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
+            <div className="bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 shadow-sm">
               <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Reviewed</div>
               <div className="text-2xl font-bold text-gray-900 dark:text-white">{data.reviewedToday}</div>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
+            <div className="bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 shadow-sm">
               <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Accuracy</div>
               <div className="text-2xl font-bold text-gray-900 dark:text-white">{data.accuracyRate}%</div>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
+            <div className="bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 shadow-sm">
               <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Mastered</div>
               <div className="text-2xl font-bold text-gray-900 dark:text-white">{data.cardsMastered}</div>
             </div>
