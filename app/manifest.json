@@ -1,6 +1,7 @@
 {
-  "name": "Buildify- PrebuiltUI",
-  "short_name": "Buildify",
+  "name": "Manabou – Learn Japanese",
+  "short_name": "Manabou",
+  "description": "Learn Japanese with spaced repetition, a daily plan, mnemonics, and focused study tracking.",
   "icons": [
     {
       "src": "/assets/web-app-manifest-192x192.png",
@@ -15,7 +16,8 @@
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#ffffff",
+  "theme_color": "#0d9488",
   "background_color": "#ffffff",
-  "display": "standalone"
+  "display": "standalone",
+  "start_url": "/"
 }

@@ -83,13 +83,6 @@ export default function ReviewPage() {
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-  const inputBarRef = useRef<HTMLDivElement>(null);
-
-  // Mobile: stick input bar above keyboard when focused
-  const [inputFocused, setInputFocused] = useState(false);
-  const [keyboardBottomOffset, setKeyboardBottomOffset] = useState(0);
-
-  // ... (existing state) ...
 
   // Helper: input is Japanese (kana/kanji) → we check kana; otherwise we check meaning
   const isJapanese = (text: string) => {
@@ -534,8 +527,6 @@ export default function ReviewPage() {
       setKanaInput('');
       setKanaCorrect(null);
       setShowFeedback(false);
-      setInputFocused(false);
-      setKeyboardBottomOffset(0);
       setCurrentCardStartTime(Date.now());
       setMnemonic(null);
       setSimilarCards([]);
@@ -549,8 +540,6 @@ export default function ReviewPage() {
 
   useEffect(() => {
     if (showAnswer && currentCard) {
-      setInputFocused(false);
-      setKeyboardBottomOffset(0);
       fetchMnemonic(currentCard.id);
       fetchSimilarCards(currentCard.id);
     }
@@ -604,33 +593,6 @@ export default function ReviewPage() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
-  // Mobile: when input is focused, position input bar above keyboard (visualViewport)
-  useEffect(() => {
-    const vv = typeof window !== 'undefined' ? window.visualViewport : null;
-    if (!vv || !isMobile) return;
-
-    const updateKeyboardOffset = () => {
-      if (!inputFocused) {
-        setKeyboardBottomOffset(0);
-        return;
-      }
-      const offset = Math.max(0, window.innerHeight - (vv.offsetTop + vv.height));
-      setKeyboardBottomOffset(offset);
-    };
-
-    updateKeyboardOffset();
-    vv.addEventListener('resize', updateKeyboardOffset);
-    vv.addEventListener('scroll', updateKeyboardOffset);
-    return () => {
-      vv.removeEventListener('resize', updateKeyboardOffset);
-      vv.removeEventListener('scroll', updateKeyboardOffset);
-    };
-  }, [isMobile, inputFocused]);
-
-  useEffect(() => {
-    if (!inputFocused) setKeyboardBottomOffset(0);
-  }, [inputFocused]);
 
   // Set header content
   useEffect(() => {
@@ -942,67 +904,50 @@ export default function ReviewPage() {
                     )}
                   </div>
 
-                  {/* Answer input + buttons: on mobile when keyboard open, stick above keyboard */}
-                  {isMobile && keyboardBottomOffset > 0 && (
-                    <div aria-hidden className="min-h-[160px]" />
-                  )}
-                  <div
-                    ref={inputBarRef}
-                    className={`space-y-3 px-4 md:px-0 ${isMobile && keyboardBottomOffset > 0 ? 'bg-gray-50 dark:bg-gray-900 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] dark:shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)]' : ''}`}
-                    style={isMobile && keyboardBottomOffset > 0 ? {
-                      position: 'fixed',
-                      left: 0,
-                      right: 0,
-                      bottom: keyboardBottomOffset,
-                      zIndex: 50,
-                      padding: '12px 16px',
-                      paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
-                    } : undefined}
-                  >
-                    <div className="max-w-md mx-auto space-y-3">
-                      <Input
-                        ref={inputRef}
-                        type="text"
-                        label="Kana or meaning"
-                        value={kanaInput}
-                        onChange={handeInputChange}
-                        onKeyPress={handleKeyPress}
-                        onFocus={() => setInputFocused(true)}
-                        onBlur={() => setInputFocused(false)}
-                        placeholder="かな or meaning"
-                        className={`text-center text-lg text-gray-900 dark:bg-gray-700 dark:text-white dark:border-gray-600 ${kanaCorrect === true
-                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                          : kanaCorrect === false
-                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                            : inputError
-                              ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
-                              : ''
-                          }`}
-                        disabled={showAnswer || showFeedback}
-                      />
-                      {inputError && (
-                        <div className="text-xs text-red-500 font-medium text-center animate-pulse">
-                          {inputError}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex gap-2 pt-2 max-w-md mx-auto">
-                      <Button
-                        onClick={handleSkip}
-                        variant="outline"
-                        className="px-3"
-                        title="Skip card"
-                      >
-                        <SkipForwardIcon className="w-5 h-5" />
-                      </Button>
-                      <Button
-                        onClick={handleAnswerCheck}
-                        disabled={showFeedback}
-                        className="flex-1"
-                      >
-                        Show Answer
-                      </Button>
-                    </div>
+                  {/* Answer input: kana or meaning — scrollable, no stick-to-keyboard */}
+                  <div className="space-y-3">
+                    <Input
+                      ref={inputRef}
+                      type="text"
+                      label="Kana or meaning"
+                      value={kanaInput}
+                      onChange={handeInputChange}
+                      onKeyPress={handleKeyPress}
+                      placeholder="かな or meaning"
+                      className={`text-center text-lg text-gray-900 dark:bg-gray-700 dark:text-white dark:border-gray-600 ${kanaCorrect === true
+                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                        : kanaCorrect === false
+                          ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                          : inputError
+                            ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
+                            : ''
+                        }`}
+                      disabled={showAnswer || showFeedback}
+                    />
+                    {inputError && (
+                      <div className="text-xs text-red-500 font-medium text-center animate-pulse">
+                        {inputError}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      onClick={handleSkip}
+                      variant="outline"
+                      className="px-3"
+                      title="Skip card"
+                    >
+                      <SkipForwardIcon className="w-5 h-5" />
+                    </Button>
+                    <Button
+                      onClick={handleAnswerCheck}
+                      disabled={showFeedback}
+                      className="flex-1"
+                    >
+                      Show Answer
+                    </Button>
                   </div>
                 </div>
               ) : (
