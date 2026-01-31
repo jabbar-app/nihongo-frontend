@@ -154,11 +154,11 @@ The component uses Tailwind CSS classes. You can modify:
 
 ### Icons
 
-Replace the icons in:
-- `public/assets/web-app-manifest-192x192.png`
-- `public/assets/web-app-manifest-512x512.png`
-- `public/icons/icon-192x192.png`
-- `public/icons/icon-512x512.png`
+The app uses a single brand icon set in `public/icons/`:
+- `public/icons/icon-192x192.png` – favicon, PWA, Apple touch
+- `public/icons/icon-512x512.png` – PWA, Open Graph / social / SEO
+
+Replace these files to update the app icon everywhere (favicon, PWA, OG, Twitter, etc.).
 
 ## Browser Support
 

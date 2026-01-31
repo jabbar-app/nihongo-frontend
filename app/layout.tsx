@@ -22,7 +22,7 @@ const urbanist = Urbanist({
 });
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://manabou.app";
-const OG_IMAGE = "https://flagcdn.com/w1280/jp.png"; // Japan flag for OG/social
+const APP_ICON = `${APP_URL}/icons/icon-512x512.png`;
 
 export const metadata: Metadata = {
     metadataBase: new URL(APP_URL),
@@ -51,6 +51,10 @@ export const metadata: Metadata = {
         index: true,
         follow: true,
     },
+    icons: {
+        icon: "/icons/icon-192x192.png",
+        apple: "/icons/icon-192x192.png",
+    },
     appleWebApp: {
         title: "Manabou",
         capable: true,
@@ -67,10 +71,10 @@ export const metadata: Metadata = {
             "Spaced repetition reviews, mnemonics, a daily plan, and focused study tracking. Build a calm study habit.",
         images: [
             {
-                url: OG_IMAGE,
-                width: 1280,
-                height: 853,
-                alt: "Japan – Learn Japanese with Manabou",
+                url: APP_ICON,
+                width: 512,
+                height: 512,
+                alt: "Manabou – Learn Japanese",
             },
         ],
     },
@@ -79,7 +83,7 @@ export const metadata: Metadata = {
         title: "Manabou – Learn Japanese with a daily plan",
         description:
             "Spaced repetition reviews, mnemonics, a daily plan, and focused study tracking.",
-        images: [OG_IMAGE],
+        images: [APP_ICON],
     },
 };
 export default function RootLayout({
