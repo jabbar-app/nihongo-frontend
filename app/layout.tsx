@@ -55,6 +55,7 @@ export const metadata: Metadata = {
         capable: true,
         statusBarStyle: "default",
     },
+    manifest: "/manifest.json",
     openGraph: {
         type: "website",
         locale: "en_US",
