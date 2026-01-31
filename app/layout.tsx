@@ -10,6 +10,7 @@ import BottomNav from "@/components/bottom-nav";
 import { ThemeProvider } from "@/lib/theme-context";
 import { HeaderProvider } from "@/components/header-context";
 import PWAInstallPrompt from "@/components/pwa-install-prompt";
+import AppVersion from "@/components/app-version";
 
 const inter = Inter({
     variable: "--font-sans",
@@ -119,6 +120,7 @@ export default function RootLayout({
                         <LenisScroll />
                         <Navbar />
                         {children}
+                        <AppVersion />
                         <div className="hidden md:block">
                             <Footer />
                         </div>
