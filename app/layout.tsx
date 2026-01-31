@@ -9,6 +9,7 @@ import Footer from "@/components/footer";
 import BottomNav from "@/components/bottom-nav";
 import { ThemeProvider } from "@/lib/theme-context";
 import { HeaderProvider } from "@/components/header-context";
+import PWAInstallPrompt from "@/components/pwa-install-prompt";
 
 const inter = Inter({
     variable: "--font-sans",
@@ -120,6 +121,7 @@ export default function RootLayout({
                         <div className="md:hidden">
                             <BottomNav />
                         </div>
+                        <PWAInstallPrompt />
                     </HeaderProvider>
                 </ThemeProvider>
                 <Analytics />
