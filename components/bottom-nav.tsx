@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { HomeIcon, BookOpenIcon, MessageSquareIcon, UserIcon } from 'lucide-react';
+import { HomeIcon, MessageSquareIcon, UserIcon, FileTextIcon, RotateCcwIcon } from 'lucide-react';
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -43,14 +43,24 @@ export default function BottomNav() {
           <span className={`text-xs font-medium ${isActive('/dashboard') ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400'}`}>Home</span>
         </Link>
         <Link
+          href="/materials"
+          className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${isActive('/materials')
+            ? 'text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20'
+            : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+            }`}
+        >
+          <FileTextIcon className={`w-6 h-6 ${isActive('/materials') ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400'}`} />
+          <span className={`text-xs font-medium ${isActive('/materials') ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400'}`}>Learn</span>
+        </Link>
+        <Link
           href="/review"
           className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${isActive('/review')
             ? 'text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20'
             : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
             }`}
         >
-          <BookOpenIcon className={`w-6 h-6 ${isActive('/review') ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400'}`} />
-          <span className={`text-xs font-medium ${isActive('/review') ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400'}`}>Learn</span>
+          <RotateCcwIcon className={`w-6 h-6 ${isActive('/review') ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400'}`} />
+          <span className={`text-xs font-medium ${isActive('/review') ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400'}`}>Review</span>
         </Link>
         <Link
           href="/practice"

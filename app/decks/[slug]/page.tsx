@@ -7,6 +7,8 @@ import Card from '@/components/ui/card';
 import { api } from '@/lib/api';
 import Button from '@/components/ui/button';
 import Input from '@/components/ui/input';
+import CardEditModal from '@/components/card-edit-modal';
+import { PencilIcon } from 'lucide-react';
 
 interface Deck {
     id: number;
@@ -33,6 +35,9 @@ export default function DeckDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [editingCard, setEditingCard] = useState<any>(null);
+
+    console.log('DeckDetailPage: Rendering', { slug, deckDataCount: deckData?.cards?.length });
 
     useEffect(() => {
         if (!slug) return;
@@ -85,6 +90,7 @@ export default function DeckDetailPage() {
     const cardsList = Array.isArray(rawCards) ? rawCards : (rawCards?.data || []);
 
     // Filter cards based on search
+    console.log('DeckDetailPage: filtering cards', { total: cardsList.length, searchQuery });
     const filteredCards = cardsList.filter((card: any) =>
         (card.kanji && card.kanji.includes(searchQuery)) ||
         (card.kana && card.kana.includes(searchQuery)) ||
@@ -203,8 +209,16 @@ export default function DeckDetailPage() {
                                                     {card.kana}
                                                 </div>
                                             )}
-                                            <div className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-700 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <GraduationCapIcon className="w-4 h-4 text-gray-400" />
+                                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={() => setEditingCard(card)}
+                                                    className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-700 hover:bg-teal-50 dark:hover:bg-teal-900/30 flex items-center justify-center transition-colors"
+                                                >
+                                                    <PencilIcon className="w-4 h-4 text-gray-400 hover:text-teal-600 dark:hover:text-teal-400" />
+                                                </button>
+                                                <div className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
+                                                    <GraduationCapIcon className="w-4 h-4 text-gray-400" />
+                                                </div>
                                             </div>
                                         </div>
 
@@ -248,6 +262,30 @@ export default function DeckDetailPage() {
                     Start Reviewing ({deck.card_count})
                 </Button>
             </div>
+
+            {/* Edit Modal */}
+            {editingCard && (
+                <CardEditModal
+                    card={editingCard}
+                    isOpen={!!editingCard}
+                    onClose={() => setEditingCard(null)}
+                    onSave={(updatedCard) => {
+                        // Update the card in the local state
+                        setDeckData(prev => {
+                            if (!prev) return null;
+                            const updatedCards = Array.isArray(prev.cards)
+                                ? prev.cards.map(c => c.id === updatedCard.id ? updatedCard : c)
+                                // @ts-ignore
+                                : { ...prev.cards, data: prev.cards.data.map(c => c.id === updatedCard.id ? updatedCard : c) };
+
+                            return {
+                                ...prev,
+                                cards: updatedCards
+                            };
+                        });
+                    }}
+                />
+            )}
         </main>
     );
 }

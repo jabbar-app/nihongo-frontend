@@ -566,7 +566,7 @@ export default function DashboardPage() {
             <h2 className="font-semibold text-lg text-gray-900 dark:text-white">Your Learning</h2>
             <button
               onClick={() => router.push('/decks')}
-              className="text-teal-500 text-sm font-medium"
+              className="text-teal-500 text-sm font-medium cursor-pointer"
             >
               See All
             </button>

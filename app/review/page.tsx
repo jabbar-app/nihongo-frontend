@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { LightbulbIcon, LightbulbOffIcon, CheckCircleIcon, XCircleIcon, ArrowLeftIcon, Volume2Icon, MenuIcon, UndoIcon, SkipForwardIcon, ClockIcon, TrendingUpIcon, XIcon, EditIcon, TrashIcon, SparklesIcon, SaveIcon, LoaderIcon } from 'lucide-react';
+import { LightbulbIcon, LightbulbOffIcon, CheckCircleIcon, XCircleIcon, ArrowLeftIcon, Volume2Icon, MenuIcon, UndoIcon, SkipForwardIcon, ClockIcon, TrendingUpIcon, XIcon, EditIcon, TrashIcon, SparklesIcon, SaveIcon, LoaderIcon, PencilIcon, BookOpenIcon } from 'lucide-react';
 import ThemeToggle from '@/components/theme-toggle';
 import Card from "@/components/ui/card";
 import { api } from '@/lib/api';
@@ -10,6 +10,7 @@ import Button from '@/components/ui/button';
 import Input from "@/components/ui/input";
 import ProgressBar from "@/components/ui/progress-bar";
 import MobileSidebar from '@/components/mobile-sidebar';
+import CardEditModal from '@/components/card-edit-modal';
 
 interface UserCardData {
   repetition: number;
@@ -29,6 +30,7 @@ interface CardContent {
   meaning_en: string | null;
   example_sentence_ja: string | null;
   example_sentence_id: string | null;
+  example_sentence_en: string | null;
   audio_word_url: string | null;
   audio_sentence_url: string | null;
   tags: string[] | null;
@@ -73,6 +75,8 @@ export default function ReviewPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [showAnswer, setShowAnswer] = useState(false);
+  const [showExampleSentence, setShowExampleSentence] = useState(false);
+  const [showMnemonic, setShowMnemonic] = useState(false);
   const [hintState, setHintState] = useState<'none' | 'kana' | 'meaning'>('none');
   const [hintScope, setHintScope] = useState<'this_only' | 'rest_of_session'>('this_only');
   const [hintModalOpen, setHintModalOpen] = useState(false);
@@ -85,6 +89,7 @@ export default function ReviewPage() {
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const [editingCard, setEditingCard] = useState<any>(null);
 
   // Helper: input is Japanese (kana/kanji) → we check kana; otherwise we check meaning
   const isJapanese = (text: string) => {
@@ -567,6 +572,8 @@ export default function ReviewPage() {
       setShowFurigana(false);
       setEditingMnemonic(false);
       setMnemonicContent('');
+      setShowExampleSentence(false);
+      setShowMnemonic(false);
 
       setTimeout(() => inputRef.current?.focus(), 100);
     }
@@ -1037,7 +1044,14 @@ export default function ReviewPage() {
               ) : (
                 <div className="text-center space-y-6 pt-12">
                   {/* Word Display (Answer) */}
-                  <div className="space-y-4">
+                  <div className="space-y-4 relative">
+                    <button
+                      onClick={() => setEditingCard(cardContent)}
+                      className="absolute right-0 top-0 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      title="Edit Card"
+                    >
+                      <PencilIcon className="w-5 h-5 text-gray-400 hover:text-teal-600 dark:hover:text-teal-400" />
+                    </button>
                     {hasKanji ? (
                       <>
                         <div
@@ -1068,108 +1082,7 @@ export default function ReviewPage() {
                       </div>
                     )}
 
-                    {/* Example Sentence Section */}
-                    {cardContent.example_sentence_ja && (
-                      <div className="mt-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 text-left">
-                        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Example</div>
-                        <div className="text-lg text-gray-800 dark:text-gray-200 font-serif mb-2 leading-relaxed">
-                          {cardContent.example_sentence_ja}
-                        </div>
-                        {cardContent.example_sentence_id && (
-                          <details className="group">
-                            <summary className="cursor-pointer text-sm text-blue-600 dark:text-blue-400 font-medium hover:underline focus:outline-none list-none select-none">
-                              <span className="group-open:hidden">Show translation</span>
-                              <span className="hidden group-open:inline">Hide translation</span>
-                            </summary>
-                            <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 italic animate-in slide-in-from-top-1 fade-in">
-                              {cardContent.example_sentence_id}
-                            </div>
-                          </details>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Mnemonic Display */}
-                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Mnemonic:</div>
-                      <div className="flex items-center gap-2">
-                        {!editingMnemonic && (
-                          <>
-                            <button
-                              onClick={generateMnemonic}
-                              disabled={generatingMnemonic}
-                              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-                              title="Generate mnemonic with AI"
-                            >
-                              {generatingMnemonic ? (
-                                <LoaderIcon className="w-4 h-4 animate-spin text-gray-600 dark:text-gray-400" />
-                              ) : (
-                                <SparklesIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                              )}
-                            </button>
-                            {mnemonic && (
-                              <>
-                                <button
-                                  onClick={() => {
-                                    setEditingMnemonic(true);
-                                    setMnemonicContent(mnemonic.content || '');
-                                  }}
-                                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                                  title="Edit mnemonic"
-                                >
-                                  <EditIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                </button>
-                                <button
-                                  onClick={deleteMnemonic}
-                                  className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
-                                  title="Delete mnemonic"
-                                >
-                                  <TrashIcon className="w-4 h-4 text-red-600 dark:text-red-400" />
-                                </button>
-                              </>
-                            )}
-                          </>
-                        )}
-                        {editingMnemonic && (
-                          <>
-                            <button
-                              onClick={saveMnemonic}
-                              disabled={savingMnemonic}
-                              className="p-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/20 transition-colors"
-                              title="Save mnemonic"
-                            >
-                              <SaveIcon className="w-4 h-4 text-green-600 dark:text-green-400" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setEditingMnemonic(false);
-                                setMnemonicContent(mnemonic?.content || '');
-                              }}
-                              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                              title="Cancel editing"
-                            >
-                              <XIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {editingMnemonic ? (
-                      <textarea
-                        value={mnemonicContent}
-                        onChange={(e) => setMnemonicContent(e.target.value)}
-                        className="w-full text-sm p-3 rounded-xl border border-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white resize-y min-h-[80px] focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
-                        placeholder="Type a mnemonic..."
-                        autoFocus
-                      />
-                    ) : (
-                      <div className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50 p-3 rounded-xl italic">
-                        {mnemonic ? mnemonic.content : "No mnemonic yet. Create one to help you remember!"}
-                      </div>
-                    )}
+                    {/* Example Sentence Section Removed from here */}
                   </div>
                 </div>
               )}
@@ -1178,11 +1091,14 @@ export default function ReviewPage() {
             {/* Answer Buttons (1–4) — inside card */}
             {showAnswer && !showFeedback && (
               <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 px-4 pb-2">
+                <p className="text-xs text-center text-gray-500 dark:text-gray-400 mb-3">
+                  How well did you remember? Choose to continue.
+                </p>
                 <div className="grid grid-cols-4 gap-2 sm:gap-3">
                   <button
                     onClick={() => handleGrade('again')}
                     disabled={submitting}
-                    className="group flex flex-col items-center justify-center min-h-[72px] py-3 px-2 rounded-xl bg-red-50/50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-900/40 hover:bg-red-100 dark:hover:bg-red-900/40 hover:border-red-300 dark:hover:border-red-800 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+                    className="group cursor-pointer flex flex-col items-center justify-center min-h-[72px] py-3 px-2 rounded-xl bg-red-50/50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-900/40 hover:bg-red-100 dark:hover:bg-red-900/40 hover:border-red-300 dark:hover:border-red-800 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
                     title="Forgot (1)"
                   >
                     <span className="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-400 tabular-nums group-hover:scale-105 transition-transform">1</span>
@@ -1192,7 +1108,7 @@ export default function ReviewPage() {
                   <button
                     onClick={() => handleGrade('hard')}
                     disabled={submitting}
-                    className="group flex flex-col items-center justify-center min-h-[72px] py-3 px-2 rounded-xl bg-orange-50/50 dark:bg-orange-950/30 border border-orange-200/60 dark:border-orange-900/40 hover:bg-orange-100 dark:hover:bg-orange-900/40 hover:border-orange-300 dark:hover:border-orange-800 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+                    className="group cursor-pointer flex flex-col items-center justify-center min-h-[72px] py-3 px-2 rounded-xl bg-orange-50/50 dark:bg-orange-950/30 border border-orange-200/60 dark:border-orange-900/40 hover:bg-orange-100 dark:hover:bg-orange-900/40 hover:border-orange-300 dark:hover:border-orange-800 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
                     title="Hard (2)"
                   >
                     <span className="text-2xl sm:text-3xl font-black text-orange-600 dark:text-orange-400 tabular-nums group-hover:scale-105 transition-transform">2</span>
@@ -1202,7 +1118,7 @@ export default function ReviewPage() {
                   <button
                     onClick={() => handleGrade('good')}
                     disabled={submitting}
-                    className="group flex flex-col items-center justify-center min-h-[72px] py-3 px-2 rounded-xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900/40 hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:border-blue-300 dark:hover:border-blue-800 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+                    className="group cursor-pointer flex flex-col items-center justify-center min-h-[72px] py-3 px-2 rounded-xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900/40 hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:border-blue-300 dark:hover:border-blue-800 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
                     title="Good (3)"
                   >
                     <span className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 tabular-nums group-hover:scale-105 transition-transform">3</span>
@@ -1212,13 +1128,171 @@ export default function ReviewPage() {
                   <button
                     onClick={() => handleGrade('easy')}
                     disabled={submitting}
-                    className="group flex flex-col items-center justify-center min-h-[72px] py-3 px-2 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 hover:border-emerald-300 dark:hover:border-emerald-800 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+                    className="group cursor-pointer flex flex-col items-center justify-center min-h-[72px] py-3 px-2 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 hover:border-emerald-300 dark:hover:border-emerald-800 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
                     title="Easy (4)"
                   >
                     <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums group-hover:scale-105 transition-transform">4</span>
                     <span className="text-[10px] sm:text-xs font-semibold text-emerald-600/90 dark:text-emerald-400/90 uppercase tracking-wide mt-0.5">Easy</span>
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* Study Aids Section - Mnemonic & Example Sentence */}
+            {showAnswer && (
+              <div className="mt-4 px-4 pb-6 border-t border-gray-100 dark:border-gray-700 pt-4 space-y-3">
+                {/* Toggle Buttons Row */}
+                {(!showMnemonic || !showExampleSentence) && (
+                  <div className="flex gap-2">
+                    {!showMnemonic && (
+                      <button
+                        onClick={() => setShowMnemonic(true)}
+                        className="flex-1 py-2 text-sm text-teal-600 dark:text-teal-400 font-medium bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/40 rounded-lg transition-colors flex items-center justify-center gap-2"
+                      >
+                        <SparklesIcon className="w-4 h-4" />
+                        Mnemonic
+                      </button>
+                    )}
+                    {!showExampleSentence && cardContent.example_sentence_ja && (
+                      <button
+                        onClick={() => setShowExampleSentence(true)}
+                        className="flex-1 py-2 text-sm text-teal-600 dark:text-teal-400 font-medium bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/40 rounded-lg transition-colors flex items-center justify-center gap-2"
+                      >
+                        <BookOpenIcon className="w-4 h-4" />
+                        Example
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Mnemonic Content */}
+                {showMnemonic && (
+                  <div className="animate-in slide-in-from-top-2 fade-in duration-200">
+                    <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 text-left border border-gray-100 dark:border-gray-700">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Mnemonic</div>
+                        <div className="flex items-center gap-1">
+                          {!editingMnemonic && (
+                            <>
+                              <button
+                                onClick={generateMnemonic}
+                                disabled={generatingMnemonic}
+                                className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                                title="Generate with AI"
+                              >
+                                {generatingMnemonic ? (
+                                  <LoaderIcon className="w-4 h-4 animate-spin text-gray-500" />
+                                ) : (
+                                  <SparklesIcon className="w-4 h-4 text-gray-500" />
+                                )}
+                              </button>
+                              {mnemonic && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setEditingMnemonic(true);
+                                      setMnemonicContent(mnemonic.content || '');
+                                    }}
+                                    className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                    title="Edit"
+                                  >
+                                    <EditIcon className="w-4 h-4 text-gray-500" />
+                                  </button>
+                                  <button
+                                    onClick={deleteMnemonic}
+                                    className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
+                                    title="Delete"
+                                  >
+                                    <TrashIcon className="w-4 h-4 text-red-500" />
+                                  </button>
+                                </>
+                              )}
+                            </>
+                          )}
+                          {editingMnemonic && (
+                            <>
+                              <button
+                                onClick={saveMnemonic}
+                                disabled={savingMnemonic}
+                                className="p-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/20 transition-colors"
+                                title="Save"
+                              >
+                                <SaveIcon className="w-4 h-4 text-green-600" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingMnemonic(false);
+                                  setMnemonicContent(mnemonic?.content || '');
+                                }}
+                                className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                title="Cancel"
+                              >
+                                <XIcon className="w-4 h-4 text-gray-500" />
+                              </button>
+                            </>
+                          )}
+                          <button
+                            onClick={() => setShowMnemonic(false)}
+                            className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ml-1"
+                            title="Hide"
+                          >
+                            <XIcon className="w-4 h-4 text-gray-400" />
+                          </button>
+                        </div>
+                      </div>
+                      {editingMnemonic ? (
+                        <textarea
+                          value={mnemonicContent}
+                          onChange={(e) => setMnemonicContent(e.target.value)}
+                          className="w-full text-sm p-3 rounded-lg border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white resize-y min-h-[80px] focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
+                          placeholder="Type a mnemonic to help you remember..."
+                          autoFocus
+                        />
+                      ) : (
+                        <div className="text-sm text-gray-700 dark:text-gray-300 italic border-l-4 border-teal-500 pl-3">
+                          {mnemonic ? mnemonic.content : "No mnemonic yet. Click the sparkle icon to generate one with AI!"}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Example Sentence Content */}
+                {showExampleSentence && cardContent.example_sentence_ja && (
+                  <div className="animate-in slide-in-from-top-2 fade-in duration-200">
+                    <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 text-left border border-gray-100 dark:border-gray-700">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Example</div>
+                        <button
+                          onClick={() => setShowExampleSentence(false)}
+                          className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                          title="Hide"
+                        >
+                          <XIcon className="w-4 h-4 text-gray-400" />
+                        </button>
+                      </div>
+                      <div className="text-lg text-gray-800 dark:text-gray-200 font-serif mb-3 leading-relaxed border-l-4 border-teal-500 pl-3">
+                        {cardContent.example_sentence_ja}
+                      </div>
+
+                      {/* Translations */}
+                      <div className="space-y-2 mt-4 ml-4">
+                        {cardContent.example_sentence_id && (
+                          <div className="text-sm text-gray-600 dark:text-gray-400 italic">
+                            <span className="font-medium text-gray-400 not-italic text-xs mr-2">ID</span>
+                            {cardContent.example_sentence_id}
+                          </div>
+                        )}
+                        {cardContent.example_sentence_en && (
+                          <div className="text-sm text-gray-600 dark:text-gray-400 italic">
+                            <span className="font-medium text-gray-400 not-italic text-xs mr-2">EN</span>
+                            {cardContent.example_sentence_en}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </Card>
@@ -1330,6 +1404,25 @@ export default function ReviewPage() {
           )}
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {editingCard && (
+        <CardEditModal
+          card={editingCard}
+          isOpen={!!editingCard}
+          onClose={() => setEditingCard(null)}
+          onSave={(updatedCard) => {
+            // Update current card
+            setCurrentCard(prev => prev ? { ...prev, ...updatedCard } : null);
+
+            // Update queue
+            setQueue(prev => {
+              if (!prev) return null;
+              return prev.map(c => c.id === updatedCard.id ? { ...c, ...updatedCard } : c);
+            });
+          }}
+        />
+      )}
     </main>
   );
 }

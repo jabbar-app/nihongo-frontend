@@ -2,7 +2,7 @@
 
 import { links } from "@/data/links";
 import { ILink } from "@/types";
-import { MenuIcon, XIcon, HomeIcon, BookOpenIcon, LibraryIcon, UserIcon, LogOutIcon, SettingsIcon, CalendarIcon, ChevronDownIcon } from "lucide-react";
+import { MenuIcon, XIcon, HomeIcon, BookOpenIcon, LibraryIcon, UserIcon, LogOutIcon, SettingsIcon, CalendarIcon, ChevronDownIcon, FileTextIcon, PanelTopCloseIcon, PanelTopOpenIcon, Maximize2Icon, Minimize2Icon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -13,14 +13,36 @@ import ThemeToggle from "@/components/theme-toggle";
 import { useHeader } from "@/components/header-context";
 
 export default function Navbar() {
-  const { headerContent, showDefaultNav, setShowDefaultNav } = useHeader();
+  const { headerContent, showDefaultNav, setShowDefaultNav, showMaterialHeader, setShowMaterialHeader } = useHeader();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+
+  // Track fullscreen state changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.error('Fullscreen error:', err);
+    }
+  };
 
   // Hide default nav on auth pages
   useEffect(() => {
@@ -99,7 +121,13 @@ export default function Navbar() {
     return isLoggedIn ? '/review' : '/login';
   };
 
-  const isActive = (path: string) => pathname === path;
+  const isActive = (path: string) => {
+    // Exact match for most paths
+    if (pathname === path) return true;
+    // Keep /materials active when viewing material detail pages
+    if (path === '/materials' && pathname?.startsWith('/materials/')) return true;
+    return false;
+  };
 
   const handleNavigation = (path: string) => {
     router.push(path);
@@ -110,6 +138,7 @@ export default function Navbar() {
     { icon: HomeIcon, label: 'Dashboard', path: '/dashboard' },
     { icon: BookOpenIcon, label: 'Review', path: '/review' },
     { icon: LibraryIcon, label: 'Decks', path: '/decks' },
+    { icon: FileTextIcon, label: 'Materials', path: '/materials' },
     { icon: CalendarIcon, label: 'History', path: '/history' },
   ];
 
@@ -160,6 +189,15 @@ export default function Navbar() {
                   Dashboard
                 </Link>
                 <Link
+                  href="/materials"
+                  className={`px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/materials')
+                    ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    }`}
+                >
+                  Learn
+                </Link>
+                <Link
                   href="/review"
                   className={`px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/review')
                     ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
@@ -191,6 +229,33 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Material Header Toggle & Fullscreen - Only visible on material detail pages */}
+            {pathname?.startsWith('/materials/') && (
+              <>
+                <button
+                  onClick={() => setShowMaterialHeader(!showMaterialHeader)}
+                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+                  title={showMaterialHeader ? "Hide header for more content" : "Show header"}
+                >
+                  {showMaterialHeader ? (
+                    <PanelTopCloseIcon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                  ) : (
+                    <PanelTopOpenIcon className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                  )}
+                </button>
+                <button
+                  onClick={toggleFullscreen}
+                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+                  title={isFullscreen ? "Exit fullscreen" : "Focus mode (fullscreen)"}
+                >
+                  {isFullscreen ? (
+                    <Minimize2Icon className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                  ) : (
+                    <Maximize2Icon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                  )}
+                </button>
+              </>
+            )}
             <ThemeToggle className="cursor-pointer" />
 
             {/* Desktop Profile Dropdown - Only when logged in */}

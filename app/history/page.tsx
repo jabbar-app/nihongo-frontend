@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon, TrendingUpIcon, CalendarIcon, TargetIcon, AwardIcon } from 'lucide-react';
 import Card from '@/components/ui/card';
 import { api } from '@/lib/api';
-import MobileSidebar from '@/components/mobile-sidebar';
-import { MenuIcon } from 'lucide-react';
 
 interface DashboardData {
   dueToday: number;
@@ -30,23 +28,11 @@ export default function HistoryPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [user, setUser] = useState<any>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     if (!token) {
       router.push('/login');
       return;
-    }
-
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      try {
-        setUser(JSON.parse(userData));
-      } catch (e) {
-        // Invalid user data
-      }
     }
 
     const fetchDashboard = async () => {
@@ -152,36 +138,9 @@ export default function HistoryPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
-      {/* Mobile Sidebar */}
-      <MobileSidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        user={user}
-      />
-
       <div className="max-w-md mx-auto md:max-w-4xl">
-        {/* Mobile Header */}
-        <div className="md:hidden px-4 pt-4 pb-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 sticky top-0 z-30">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              <MenuIcon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-            </button>
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">History & Summary</h1>
-            <div className="w-10" /> {/* Spacer for centering */}
-          </div>
-        </div>
-
-        {/* Desktop Header */}
-        <div className="hidden md:block px-4 pt-8 pb-4">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="p-2 -ml-2 mb-4 cursor-pointer"
-          >
-            <ArrowLeftIcon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-          </button>
+        {/* Page Header */}
+        <div className="px-4 pt-4 md:pt-8 pb-4">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">History & Summary</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Your learning progress and statistics</p>
         </div>
