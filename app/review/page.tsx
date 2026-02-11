@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { LightbulbIcon, LightbulbOffIcon, CheckCircleIcon, XCircleIcon, ArrowLeftIcon, Volume2Icon, MenuIcon, UndoIcon, SkipForwardIcon, ClockIcon, TrendingUpIcon, XIcon, EditIcon, TrashIcon, SparklesIcon, SaveIcon, LoaderIcon, PencilIcon, BookOpenIcon, EyeIcon, EyeOffIcon, LanguagesIcon } from 'lucide-react';
+import { LightbulbIcon, LightbulbOffIcon, CheckCircleIcon, XCircleIcon, ArrowLeftIcon, Volume2Icon, MenuIcon, UndoIcon, SkipForwardIcon, ClockIcon, TrendingUpIcon, XIcon, EditIcon, TrashIcon, SparklesIcon, SaveIcon, LoaderIcon, PencilIcon, BookOpenIcon, EyeIcon, EyeOffIcon, LanguagesIcon, RotateCcwIcon } from 'lucide-react';
 import ThemeToggle from '@/components/theme-toggle';
 import Card from "@/components/ui/card";
 import { api } from '@/lib/api';
@@ -607,6 +607,24 @@ export default function ReviewPage() {
     }
   };
 
+  // Restart Session handler
+  const handleRestartSession = async () => {
+    // Reset session statistics
+    setSessionStats({
+      correct: 0,
+      incorrect: 0,
+      total: 0,
+      startTime: Date.now(),
+      cardTimes: []
+    });
+
+    // Reset streak (optional, but keep it clean)
+    // Actually reviewStreak is external, we keep it.
+
+    // Fetch new queue (same as continue)
+    await handleContinueSession();
+  };
+
   useEffect(() => {
     const fetchStreak = async () => {
       const token = localStorage.getItem('auth_token');
@@ -923,6 +941,14 @@ export default function ReviewPage() {
               >
                 <SparklesIcon className="w-5 h-5" />
                 Continue Session
+              </button>
+
+              <button
+                onClick={handleRestartSession}
+                className="w-full py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded-xl font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <RotateCcwIcon className="w-5 h-5" />
+                Restart Session
               </button>
 
               <button
