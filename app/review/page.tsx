@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { LightbulbIcon, LightbulbOffIcon, CheckCircleIcon, XCircleIcon, ArrowLeftIcon, Volume2Icon, MenuIcon, UndoIcon, SkipForwardIcon, ClockIcon, TrendingUpIcon, XIcon, EditIcon, TrashIcon, SparklesIcon, SaveIcon, LoaderIcon, PencilIcon, BookOpenIcon } from 'lucide-react';
+import { LightbulbIcon, LightbulbOffIcon, CheckCircleIcon, XCircleIcon, ArrowLeftIcon, Volume2Icon, MenuIcon, UndoIcon, SkipForwardIcon, ClockIcon, TrendingUpIcon, XIcon, EditIcon, TrashIcon, SparklesIcon, SaveIcon, LoaderIcon, PencilIcon, BookOpenIcon, EyeIcon, EyeOffIcon, LanguagesIcon } from 'lucide-react';
 import ThemeToggle from '@/components/theme-toggle';
 import Card from "@/components/ui/card";
 import { api } from '@/lib/api';
@@ -141,7 +141,6 @@ export default function ReviewPage() {
   const [cardDifficulty, setCardDifficulty] = useState<'new' | 'learning' | 'mastered'>('new');
   const [mnemonic, setMnemonic] = useState<any>(null);
   const [similarCards, setSimilarCards] = useState<CardContent[]>([]);
-  const [showFurigana, setShowFurigana] = useState(false);
   const [editingMnemonic, setEditingMnemonic] = useState(false);
   const [mnemonicContent, setMnemonicContent] = useState('');
   const [generatingMnemonic, setGeneratingMnemonic] = useState(false);
@@ -149,6 +148,18 @@ export default function ReviewPage() {
   const [lastAction, setLastAction] = useState<{ cardId: number, grade: string, reviewId: number } | null>(null);
   const [skippedCards, setSkippedCards] = useState<number[]>([]);
   const [reviewStreak, setReviewStreak] = useState(0);
+
+  // --- Sentence Practice State ---
+  const [practiceMode, setPracticeMode] = useState(false);
+  // We store the current target sentence here. Initially populated from card, then AI.
+  const [practiceSentence, setPracticeSentence] = useState<{ ja: string; ja_annotated?: string; en?: string | null; id?: string | null; } | null>(null);
+  const [practiceInput, setPracticeInput] = useState('');
+  const [isBlindMode, setBlindMode] = useState(false);
+  const [showFurigana, setShowFurigana] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(true);
+  const [practiceFeedback, setPracticeFeedback] = useState<'none' | 'correct' | 'incorrect'>('none');
+  const [generatingSentence, setGeneratingSentence] = useState(false);
+  const practiceInputRef = useRef<HTMLInputElement>(null);
 
   // --- Helper Functions (Hoisted) ---
 
@@ -455,6 +466,84 @@ export default function ReviewPage() {
     }
   }
 
+  // --- Sentence Practice Functions ---
+
+  async function generatePracticeSentence() {
+    if (!currentCard) return;
+
+    setGeneratingSentence(true);
+    setPracticeFeedback('none');
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      // Request new sentence, save=false to avoid overwriting card data
+      // Exclude current sentence to avoid duplicates
+      const excludeSentence = practiceSentence?.ja;
+      console.log('Generating sentence, excluding:', excludeSentence);
+
+      const response = await fetch(`${apiUrl}/api/v1/cards/${currentCard.id}/generate-sentence`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          target_lang: 'both',
+          save: false,
+          exclude: excludeSentence
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Generated sentence:', data.generated);
+
+        // data.generated contains { ja, en, id, ja_annotated }
+        if (data.generated && data.generated.ja) {
+          setPracticeSentence(data.generated);
+          setPracticeInput('');
+          setTimeout(() => practiceInputRef.current?.focus(), 100);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to generate sentence:', err);
+    } finally {
+      setGeneratingSentence(false);
+    }
+  }
+
+  function handlePracticeCheck() {
+    if (!practiceSentence || !practiceSentence.ja) return;
+
+    // Normalize: remove punctuation, spaces for looser checking? 
+    // For now, let's require semi-strict matching but ignore whitespace at ends and simple punctuation differences?
+    // Actually user (shadowing) expects exact match usually, but punctuation can be annoying.
+    // Let's strip punctuation for comparison.
+
+    const normalize = (s: string) => s.replace(/[、。！？\s]/g, '');
+    const input = normalize(practiceInput);
+    const target = normalize(practiceSentence.ja);
+
+    if (input === target) {
+      setPracticeFeedback('correct');
+      triggerHaptic('medium');
+
+      // Auto-advance after 1.5s
+      setTimeout(() => {
+        generatePracticeSentence();
+      }, 1500);
+    } else {
+      setPracticeFeedback('incorrect');
+      triggerHaptic('heavy');
+      // Reset feedback after delay so they can try again
+      setTimeout(() => setPracticeFeedback('none'), 2000);
+    }
+  }
+
   // --- Effects ---
 
   useEffect(() => {
@@ -579,6 +668,26 @@ export default function ReviewPage() {
     }
   }, [currentCard, hintScope]);
 
+  // Reset practice state when card changes or mode closes
+  useEffect(() => {
+    if (!practiceMode) {
+      setPracticeSentence(null);
+      setPracticeInput('');
+      setPracticeFeedback('none');
+      setGeneratingSentence(false);
+    } else {
+      // Initialize practice sentence from card if available
+      if (currentCard && !practiceSentence) {
+        setPracticeSentence({
+          ja: currentCard.example_sentence_ja || '',
+          en: currentCard.example_sentence_en,
+          id: currentCard.example_sentence_id
+        });
+      }
+      setTimeout(() => practiceInputRef.current?.focus(), 100);
+    }
+  }, [practiceMode, currentCard]);
+
   useEffect(() => {
     if (showAnswer && currentCard) {
       fetchMnemonic(currentCard.id);
@@ -642,7 +751,7 @@ export default function ReviewPage() {
         <div className="w-full h-16 px-4 flex items-center justify-between bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
           >
             <MenuIcon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
           </button>
@@ -682,7 +791,7 @@ export default function ReviewPage() {
             {lastAction && (
               <button
                 onClick={handleUndo}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                 title="Undo last action (←)"
               >
                 <UndoIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -810,7 +919,7 @@ export default function ReviewPage() {
             <div className="space-y-3">
               <button
                 onClick={handleContinueSession}
-                className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <SparklesIcon className="w-5 h-5" />
                 Continue Session
@@ -818,7 +927,7 @@ export default function ReviewPage() {
 
               <button
                 onClick={() => router.push('/dashboard')}
-                className="w-full py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-xl font-medium transition-colors"
+                className="w-full py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-xl font-medium transition-colors cursor-pointer"
               >
                 Back to Dashboard
               </button>
@@ -881,7 +990,7 @@ export default function ReviewPage() {
                 {/* End Session Button */}
                 <button
                   onClick={() => router.push('/dashboard')}
-                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                   title="End session"
                 >
                   <XIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -908,7 +1017,7 @@ export default function ReviewPage() {
               {/* Hint Button — opens modal to choose Kana/Meaning and scope */}
               <button
                 onClick={() => setHintModalOpen(true)}
-                className="p-2 rounded-full hover:bg-orange-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-1 z-20"
+                className="p-2 rounded-full hover:bg-orange-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-1 z-20 cursor-pointer"
                 title="Hint options"
               >
                 {hintState !== 'none' ? (
@@ -962,7 +1071,7 @@ export default function ReviewPage() {
                       e.stopPropagation();
                       playAudio(cardContent.audio_word_url!);
                     }}
-                    className="absolute top-14 right-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors z-20"
+                    className="absolute top-14 right-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors z-20 cursor-pointer"
                   >
                     <Volume2Icon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                   </button>
@@ -1027,7 +1136,7 @@ export default function ReviewPage() {
                     <Button
                       onClick={handleSkip}
                       variant="outline"
-                      className="px-3"
+                      className="px-3 cursor-pointer"
                       title="Skip card"
                     >
                       <SkipForwardIcon className="w-5 h-5" />
@@ -1035,7 +1144,7 @@ export default function ReviewPage() {
                     <Button
                       onClick={handleAnswerCheck}
                       disabled={showFeedback}
-                      className="flex-1"
+                      className="flex-1 cursor-pointer"
                     >
                       Show Answer
                     </Button>
@@ -1047,7 +1156,7 @@ export default function ReviewPage() {
                   <div className="space-y-4 relative">
                     <button
                       onClick={() => setEditingCard(cardContent)}
-                      className="absolute right-0 top-0 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      className="absolute right-0 top-0 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                       title="Edit Card"
                     >
                       <PencilIcon className="w-5 h-5 text-gray-400 hover:text-teal-600 dark:hover:text-teal-400" />
@@ -1147,7 +1256,7 @@ export default function ReviewPage() {
                     {!showMnemonic && (
                       <button
                         onClick={() => setShowMnemonic(true)}
-                        className="flex-1 py-2 text-sm text-teal-600 dark:text-teal-400 font-medium bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/40 rounded-lg transition-colors flex items-center justify-center gap-2"
+                        className="flex-1 py-2 text-sm text-teal-600 dark:text-teal-400 font-medium bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/40 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <SparklesIcon className="w-4 h-4" />
                         Mnemonic
@@ -1156,10 +1265,19 @@ export default function ReviewPage() {
                     {!showExampleSentence && cardContent.example_sentence_ja && (
                       <button
                         onClick={() => setShowExampleSentence(true)}
-                        className="flex-1 py-2 text-sm text-teal-600 dark:text-teal-400 font-medium bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/40 rounded-lg transition-colors flex items-center justify-center gap-2"
+                        className="flex-1 py-2 text-sm text-teal-600 dark:text-teal-400 font-medium bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/40 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <BookOpenIcon className="w-4 h-4" />
                         Example
+                      </button>
+                    )}
+                    {!practiceMode && (
+                      <button
+                        onClick={() => setPracticeMode(true)}
+                        className="flex-1 py-2 text-sm text-teal-600 dark:text-teal-400 font-medium bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/40 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <PencilIcon className="w-4 h-4" />
+                        Practice
                       </button>
                     )}
                   </div>
@@ -1177,7 +1295,7 @@ export default function ReviewPage() {
                               <button
                                 onClick={generateMnemonic}
                                 disabled={generatingMnemonic}
-                                className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                                className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 cursor-pointer"
                                 title="Generate with AI"
                               >
                                 {generatingMnemonic ? (
@@ -1193,14 +1311,14 @@ export default function ReviewPage() {
                                       setEditingMnemonic(true);
                                       setMnemonicContent(mnemonic.content || '');
                                     }}
-                                    className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                    className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                                     title="Edit"
                                   >
                                     <EditIcon className="w-4 h-4 text-gray-500" />
                                   </button>
                                   <button
                                     onClick={deleteMnemonic}
-                                    className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
+                                    className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
                                     title="Delete"
                                   >
                                     <TrashIcon className="w-4 h-4 text-red-500" />
@@ -1214,7 +1332,7 @@ export default function ReviewPage() {
                               <button
                                 onClick={saveMnemonic}
                                 disabled={savingMnemonic}
-                                className="p-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/20 transition-colors"
+                                className="p-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/20 transition-colors cursor-pointer"
                                 title="Save"
                               >
                                 <SaveIcon className="w-4 h-4 text-green-600" />
@@ -1224,7 +1342,7 @@ export default function ReviewPage() {
                                   setEditingMnemonic(false);
                                   setMnemonicContent(mnemonic?.content || '');
                                 }}
-                                className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                                 title="Cancel"
                               >
                                 <XIcon className="w-4 h-4 text-gray-500" />
@@ -1233,7 +1351,7 @@ export default function ReviewPage() {
                           )}
                           <button
                             onClick={() => setShowMnemonic(false)}
-                            className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ml-1"
+                            className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ml-1 cursor-pointer"
                             title="Hide"
                           >
                             <XIcon className="w-4 h-4 text-gray-400" />
@@ -1265,7 +1383,7 @@ export default function ReviewPage() {
                         <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Example</div>
                         <button
                           onClick={() => setShowExampleSentence(false)}
-                          className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                           title="Hide"
                         >
                           <XIcon className="w-4 h-4 text-gray-400" />
@@ -1317,7 +1435,7 @@ export default function ReviewPage() {
                   </h2>
                   <button
                     onClick={() => setHintModalOpen(false)}
-                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-pointer"
                     aria-label="Close"
                   >
                     <XIcon className="w-5 h-5" />
@@ -1395,7 +1513,7 @@ export default function ReviewPage() {
 
                 <button
                   onClick={applyHintAndClose}
-                  className="mt-4 w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700 text-white font-medium transition-colors"
+                  className="mt-4 w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700 text-white font-medium transition-colors cursor-pointer"
                 >
                   Apply
                 </button>
@@ -1422,6 +1540,176 @@ export default function ReviewPage() {
             });
           }}
         />
+      )}
+
+      {/* Sentence Practice Overlay */}
+      {practiceMode && (
+        <div className="fixed inset-0 z-[100] bg-white dark:bg-gray-900 flex flex-col animate-in slide-in-from-bottom-5 duration-300">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
+            <div className="flex items-center gap-3">
+              <button onClick={() => setPracticeMode(false)} className="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">
+                <ArrowLeftIcon className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+              </button>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Sentence Practice</h2>
+            </div>
+            <button
+              onClick={generatePracticeSentence}
+              disabled={generatingSentence}
+              className="text-sm font-medium text-teal-600 dark:text-teal-400 px-3 py-1.5 bg-teal-50 dark:bg-teal-900/20 rounded-lg disabled:opacity-50 transition-colors hover:bg-teal-100 dark:hover:bg-teal-900/30 cursor-pointer"
+            >
+              {generatingSentence ? "Generating..." : "New Sentence"}
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center max-w-2xl mx-auto w-full space-y-8">
+
+            {/* Target Sentence Display */}
+            <div className="w-full text-center space-y-4">
+              {generatingSentence ? (
+                <div className="py-12 flex justify-center">
+                  <LoaderIcon className="w-8 h-8 animate-spin text-teal-500" />
+                </div>
+              ) : practiceSentence ? (
+                <>
+                  {/* Japanese Text (Hideable) */}
+                  <div
+                    className={`text-2xl md:text-3xl font-serif text-gray-900 dark:text-white leading-relaxed transition-all duration-300 cursor-pointer [&_rt]:text-sm [&_rt]:text-gray-500 [&_rt]:font-sans [&_ruby]:mx-0.5 ${isBlindMode ? 'blur-md select-none opacity-50 hover:opacity-75 hover:blur-sm' : ''}`}
+                    onClick={() => isBlindMode && setBlindMode(false)}
+                    title={isBlindMode ? "Click to reveal" : ""}
+                  >
+                    {showFurigana && practiceSentence.ja_annotated ? (
+                      <span dangerouslySetInnerHTML={{ __html: practiceSentence.ja_annotated }} />
+                    ) : (
+                      practiceSentence.ja
+                    )}
+                  </div>
+
+                  {/* Translation */}
+                  <div
+                    className={`text-gray-500 dark:text-gray-400 text-lg transition-all duration-300 cursor-pointer ${!showTranslation ? 'blur-md select-none opacity-50 hover:opacity-75 hover:blur-sm' : ''}`}
+                    onClick={() => !showTranslation && setShowTranslation(true)}
+                    title={!showTranslation ? "Click to reveal" : ""}
+                  >
+                    {practiceSentence.id || practiceSentence.en || "No translation available"}
+                  </div>
+                </>
+              ) : (
+                <div className="text-gray-500">No sentence available. Tap "New Sentence".</div>
+              )}
+            </div>
+
+            {/* Input Area */}
+            <div className="w-full space-y-4">
+              <div className="relative">
+                <Input
+                  ref={practiceInputRef}
+                  value={practiceInput}
+                  onChange={(e) => {
+                    setPracticeInput(e.target.value);
+                    if (practiceFeedback !== 'correct') setPracticeFeedback('none');
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') handlePracticeCheck();
+                  }}
+                  disabled={generatingSentence || practiceFeedback === 'correct'}
+                  placeholder="Type the Japanese sentence..."
+                  className={`text-center text-xl p-6 h-auto ${practiceFeedback === 'correct' ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' :
+                    practiceFeedback === 'incorrect' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : ''
+                    }`}
+                  autoComplete="off"
+                />
+                {practiceFeedback === 'correct' && (
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-green-600 dark:text-green-400 animate-in zoom-in">
+                    <CheckCircleIcon className="w-8 h-8" />
+                  </div>
+                )}
+              </div>
+
+              {/* Feedback Text */}
+              <div className="h-6 text-center">
+                {practiceFeedback === 'correct' && <span className="text-green-600 font-bold animate-pulse">Correct! Generating new sentence...</span>}
+                {practiceFeedback === 'incorrect' && <span className="text-red-500 font-medium">Incorrect, try again.</span>}
+              </div>
+
+              {/* Buttons Action */}
+              <div className="flex gap-4 justify-center w-full max-w-sm mx-auto">
+                <Button
+                  onClick={() => setPracticeMode(false)}
+                  variant="outline"
+                  className="flex-1 py-3 text-base font-medium cursor-pointer"
+                >
+                  End Session
+                </Button>
+                <Button
+                  onClick={handlePracticeCheck}
+                  disabled={generatingSentence || practiceFeedback === 'correct' || !practiceInput.trim()}
+                  className="flex-1 py-3 text-base font-medium cursor-pointer"
+                >
+                  Check Answer
+                </Button>
+              </div>
+            </div>
+
+            {/* Controls - Card Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg">
+              {/* Blind Mode Toggle */}
+              <label className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer select-none ${isBlindMode ? 'bg-teal-50 border-teal-200 dark:bg-teal-900/20 dark:border-teal-800' : 'bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}`}>
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-full ${isBlindMode ? 'bg-teal-100 text-teal-600 dark:bg-teal-900/40 dark:text-teal-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>
+                    {isBlindMode ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className={`text-sm font-bold ${isBlindMode ? 'text-teal-900 dark:text-teal-100' : 'text-gray-900 dark:text-gray-100'}`}>Blind Mode</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Hide Japanese text</span>
+                  </div>
+                </div>
+                <div className={`relative w-11 h-6 rounded-full transition-colors ${isBlindMode ? 'bg-teal-500' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                  <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${isBlindMode ? 'translate-x-5' : ''}`} />
+                  <input type="checkbox" checked={isBlindMode} onChange={(e) => setBlindMode(e.target.checked)} className="hidden" />
+                </div>
+              </label>
+
+              {/* Furigana Toggle */}
+              <label className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer select-none ${showFurigana ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800' : 'bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}`}>
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-full ${showFurigana ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>
+                    <LanguagesIcon className="w-5 h-5" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className={`text-sm font-bold ${showFurigana ? 'text-orange-900 dark:text-orange-100' : 'text-gray-900 dark:text-gray-100'}`}>Furigana</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Show readings</span>
+                  </div>
+                </div>
+                <div className={`relative w-11 h-6 rounded-full transition-colors ${showFurigana ? 'bg-orange-500' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                  <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${showFurigana ? 'translate-x-5' : ''}`} />
+                  <input type="checkbox" checked={showFurigana} onChange={(e) => setShowFurigana(e.target.checked)} className="hidden" />
+                </div>
+              </label>
+
+              {/* Translation Toggle */}
+              <label className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer select-none sm:col-span-2 ${showTranslation ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' : 'bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}`}>
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-full ${showTranslation ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>
+                    <BookOpenIcon className="w-5 h-5" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className={`text-sm font-bold ${showTranslation ? 'text-blue-900 dark:text-blue-100' : 'text-gray-900 dark:text-gray-100'}`}>Meaning</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Show translation</span>
+                  </div>
+                </div>
+                <div className={`relative w-11 h-6 rounded-full transition-colors ${showTranslation ? 'bg-blue-500' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                  <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${showTranslation ? 'translate-x-5' : ''}`} />
+                  <input type="checkbox" checked={showTranslation} onChange={(e) => setShowTranslation(e.target.checked)} className="hidden" />
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div className="p-4 text-center text-gray-400 text-xs">
+            Press Enter to check • Auto-advances on success
+          </div>
+        </div>
       )}
     </main>
   );
