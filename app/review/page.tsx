@@ -11,6 +11,8 @@ import Input from "@/components/ui/input";
 import ProgressBar from "@/components/ui/progress-bar";
 import MobileSidebar from '@/components/mobile-sidebar';
 import CardEditModal from '@/components/card-edit-modal';
+import ConfirmModal from '@/components/confirm-modal';
+import { PracticeModal } from '@/components/practice-modal';
 import SmartDictionaryFAB from '@/components/smart-dictionary-fab';
 
 interface UserCardData {
@@ -32,6 +34,11 @@ interface CardContent {
   example_sentence_ja: string | null;
   example_sentence_id: string | null;
   example_sentence_en: string | null;
+  practice_sentence_ja?: string | null;
+  practice_sentence_ja_annotated?: string | null;
+  practice_sentence_id?: string | null;
+  practice_sentence_en?: string | null;
+  practice_sentence_generated_at?: string | null;
   audio_word_url: string | null;
   audio_sentence_url: string | null;
   tags: string[] | null;
@@ -150,11 +157,12 @@ export default function ReviewPage() {
   const [skippedCards, setSkippedCards] = useState<number[]>([]);
   const [reviewStreak, setReviewStreak] = useState(0);
   const [masteringCard, setMasteringCard] = useState(false);
+  const [showMasterConfirm, setShowMasterConfirm] = useState(false);
 
   // --- Sentence Practice State ---
   const [practiceMode, setPracticeMode] = useState(false);
   // We store the current target sentence here. Initially populated from card, then AI.
-  const [practiceSentence, setPracticeSentence] = useState<{ ja: string; ja_annotated?: string; en?: string | null; id?: string | null; } | null>(null);
+  const [practiceSentence, setPracticeSentence] = useState<{ ja: string; ja_annotated?: string; en?: string; id?: string; } | null>(null);
   const [practiceInput, setPracticeInput] = useState('');
   const [isBlindMode, setBlindMode] = useState(false);
   const [showFurigana, setShowFurigana] = useState(false);
@@ -471,8 +479,13 @@ export default function ReviewPage() {
   async function handleMarkAsMastered() {
     if (!queue || !currentCard) return;
 
-    const confirmed = confirm('Mark this card as mastered? It will be excluded from future reviews.');
-    if (!confirmed) return;
+    setShowMasterConfirm(true);
+  }
+
+  async function confirmMarkAsMastered() {
+    if (!queue || !currentCard) return;
+
+    setShowMasterConfirm(false);
 
     setMasteringCard(true);
     const cardContent = currentCard;
@@ -533,9 +546,10 @@ export default function ReviewPage() {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
+
         body: JSON.stringify({
           target_lang: 'both',
-          save: false,
+          save: true,
           exclude: excludeSentence
         }),
       });
@@ -737,11 +751,20 @@ export default function ReviewPage() {
     } else {
       // Initialize practice sentence from card if available
       if (currentCard && !practiceSentence) {
-        setPracticeSentence({
-          ja: currentCard.example_sentence_ja || '',
-          en: currentCard.example_sentence_en,
-          id: currentCard.example_sentence_id
-        });
+        if (currentCard.practice_sentence_ja) {
+          setPracticeSentence({
+            ja: currentCard.practice_sentence_ja,
+            ja_annotated: currentCard.practice_sentence_ja_annotated ?? undefined,
+            en: currentCard.practice_sentence_en ?? undefined,
+            id: currentCard.practice_sentence_id ?? undefined
+          });
+        } else {
+          setPracticeSentence({
+            ja: currentCard.example_sentence_ja || '',
+            en: currentCard.example_sentence_en ?? undefined,
+            id: currentCard.example_sentence_id ?? undefined
+          });
+        }
       }
       setTimeout(() => practiceInputRef.current?.focus(), 100);
     }
@@ -1172,48 +1195,70 @@ export default function ReviewPage() {
                   </div>
 
                   {/* Answer input: kana or meaning — scrollable, no stick-to-keyboard */}
-                  <div className="space-y-3">
+                  <div className="space-y-2">
+                    {/* Label - visible on all screens */}
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 text-center">
+                      Your Answer
+                    </label>
+
                     <Input
                       ref={inputRef}
                       type="text"
-                      label="Kana or meaning"
                       value={kanaInput}
                       onChange={handeInputChange}
                       onKeyPress={handleKeyPress}
                       placeholder="かな or meaning"
-                      className={`text-center text-lg text-gray-900 dark:bg-gray-700 dark:text-white dark:border-gray-600 ${kanaCorrect === true
+                      className={`text-center text-lg sm:text-xl font-medium min-h-[56px] ${kanaCorrect === true
                         ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                         : kanaCorrect === false
                           ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                           : inputError
                             ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
                             : ''
-                        }`}
+                        } dark:bg-gray-700 dark:text-white dark:border-gray-600`}
                       disabled={showAnswer || showFeedback}
                     />
+
+                    {/* Helper text when empty */}
+                    {!kanaInput && !inputError && !showAnswer && !showFeedback && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                        Type in Japanese (kana/kanji) or Indonesian • Press <kbd className="px-1.5 py-0.5 text-[10px] font-semibold bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded">Enter</kbd>
+                      </div>
+                    )}
+
                     {inputError && (
-                      <div className="text-xs text-red-500 font-medium text-center animate-pulse">
+                      <div className="text-xs text-red-500 font-medium text-center flex items-center justify-center gap-1">
+                        <XCircleIcon className="w-3 h-3" />
                         {inputError}
                       </div>
                     )}
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      onClick={handleSkip}
-                      variant="outline"
-                      className="px-3 cursor-pointer"
-                      title="Skip card"
-                    >
-                      <SkipForwardIcon className="w-5 h-5" />
-                    </Button>
+                  {/* Action Buttons - Responsive Layout */}
+                  <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                    {/* Primary Action - Full width on mobile, shows first */}
                     <Button
                       onClick={handleAnswerCheck}
                       disabled={showFeedback}
-                      className="flex-1 cursor-pointer"
+                      className="flex-1 cursor-pointer order-1 sm:order-2 min-h-[48px]"
                     >
-                      Show Answer
+                      <span className="flex items-center justify-center gap-2">
+                        Show Answer
+                        <span className="hidden sm:inline text-xs opacity-70">(Enter)</span>
+                      </span>
+                    </Button>
+
+                    {/* Secondary Action - Full width on mobile, shows second */}
+                    <Button
+                      onClick={handleSkip}
+                      variant="outline"
+                      className="cursor-pointer order-2 sm:order-1 sm:w-auto min-h-[48px]"
+                      title="Skip this card"
+                    >
+                      <span className="flex items-center justify-center gap-2">
+                        <SkipForwardIcon className="w-4 h-4" />
+                        <span className="sm:hidden">Skip Card</span>
+                      </span>
                     </Button>
                   </div>
                 </div>
@@ -1345,21 +1390,32 @@ export default function ReviewPage() {
                     {!showExampleSentence && (
                       <button
                         onClick={() => {
-                          setShowExampleSentence(true);
-                          // Initialize practice sentence if not set
-                          if (!practiceSentence && cardContent.example_sentence_ja) {
-                            setPracticeSentence({
-                              ja: cardContent.example_sentence_ja,
-                              en: cardContent.example_sentence_en,
-                              id: cardContent.example_sentence_id
-                            });
+                          setPracticeMode(true);
+                          // Initialize from persisted practice sentence or fallback to example sentence
+                          if (!practiceSentence) {
+                            if (cardContent.practice_sentence_ja) {
+                              // Use persisted AI-generated practice sentence
+                              setPracticeSentence({
+                                ja: cardContent.practice_sentence_ja ?? "",
+                                ja_annotated: cardContent.practice_sentence_ja_annotated ?? undefined,
+                                en: cardContent.practice_sentence_en ?? undefined,
+                                id: cardContent.practice_sentence_id ?? undefined
+                              });
+                            } else if (cardContent.example_sentence_ja) {
+                              // Fallback to original example sentence
+                              setPracticeSentence({
+                                ja: cardContent.example_sentence_ja ?? "",
+                                en: cardContent.example_sentence_en ?? undefined,
+                                id: cardContent.example_sentence_id ?? undefined
+                              });
+                            }
                           }
-                          setTimeout(() => practiceInputRef.current?.focus(), 100);
+                          setTimeout(() => practiceInputRef.current?.focus(), 300);
                         }}
                         className="flex-1 py-2 text-sm text-teal-600 dark:text-teal-400 font-medium bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/40 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <BookOpenIcon className="w-4 h-4" />
-                        Example / Practice
+                        Practice
                       </button>
                     )}
                   </div>
@@ -1457,109 +1513,7 @@ export default function ReviewPage() {
                   </div>
                 )}
 
-                {/* Example / Practice Content (Merged) */}
-                {showExampleSentence && (
-                  <div className="animate-in slide-in-from-top-2 fade-in duration-200">
-                    <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 text-left border border-gray-100 dark:border-gray-700">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Example & Practice</div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => setShowFurigana(!showFurigana)}
-                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${showFurigana ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400'}`}
-                            title="Toggle Furigana"
-                          >
-                            <LanguagesIcon className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => setShowTranslation(!showTranslation)}
-                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${showTranslation ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400'}`}
-                            title="Toggle Translation"
-                          >
-                            {showTranslation ? <EyeIcon className="w-4 h-4" /> : <EyeOffIcon className="w-4 h-4" />}
-                          </button>
-                          <button
-                            onClick={generatePracticeSentence}
-                            disabled={generatingSentence}
-                            className="p-1.5 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/30 text-teal-600 dark:text-teal-400 transition-colors cursor-pointer"
-                            title="New Sentence"
-                          >
-                            <RotateCcwIcon className={`w-4 h-4 ${generatingSentence ? 'animate-spin' : ''}`} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setShowExampleSentence(false);
-                              setPracticeSentence(null); // Reset when closing? maybe not if we want persistence
-                            }}
-                            className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-                            title="Hide"
-                          >
-                            <XIcon className="w-4 h-4 text-gray-400" />
-                          </button>
-                        </div>
-                      </div>
 
-                      {/* Sentence Display */}
-                      <div className="mb-4">
-                        {generatingSentence ? (
-                          <div className="h-16 flex items-center justify-center">
-                            <LoaderIcon className="w-6 h-6 animate-spin text-teal-500" />
-                          </div>
-                        ) : practiceSentence ? (
-                          <>
-                            <div className="text-lg text-gray-800 dark:text-gray-200 font-serif mb-2 leading-relaxed border-l-4 border-teal-500 pl-3 [&_rt]:text-xs [&_rt]:text-gray-500 [&_rt]:font-sans">
-                              {showFurigana && practiceSentence.ja_annotated ? (
-                                <span dangerouslySetInnerHTML={{ __html: practiceSentence.ja_annotated }} />
-                              ) : (
-                                practiceSentence.ja
-                              )}
-                            </div>
-                            {showTranslation && (practiceSentence.id || practiceSentence.en) && (
-                              <div className="space-y-1 ml-4 animate-in fade-in slide-in-from-top-1 duration-200">
-                                {practiceSentence.id && (
-                                  <div className="text-xs text-gray-400 font-mono">ID: {practiceSentence.id}</div>
-                                )}
-                                {practiceSentence.en && (
-                                  <div className="text-sm text-gray-600 dark:text-gray-400 italic">{practiceSentence.en}</div>
-                                )}
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <div className="text-gray-500 text-sm italic">No example available. Click refresh to generate one.</div>
-                        )}
-                      </div>
-
-                      {/* Practice Input */}
-                      {practiceSentence && (
-                        <div className="relative mt-4">
-                          <Input
-                            ref={practiceInputRef}
-                            value={practiceInput}
-                            onChange={(e) => {
-                              setPracticeInput(e.target.value);
-                              if (practiceFeedback !== 'none') setPracticeFeedback('none');
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handlePracticeCheck();
-                            }}
-                            placeholder="Type the sentence to practice..."
-                            className={`pr-10 ${practiceFeedback === 'correct' ? 'border-green-500 bg-green-50 dark:bg-green-900/20' :
-                              practiceFeedback === 'incorrect' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : ''
-                              }`}
-                          />
-                          <button
-                            onClick={handlePracticeCheck}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-teal-600 transition-colors"
-                          >
-                            <SendIcon className={`w-5 h-5 ${practiceFeedback === 'correct' ? 'text-green-500' : ''}`} />
-                          </button>
-                        </div>
-                      )}
-
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </Card>
@@ -1691,8 +1645,41 @@ export default function ReviewPage() {
         />
       )}
 
+
+      {/* Confirm Modal for Mark as Mastered */}
+      <ConfirmModal
+        isOpen={showMasterConfirm}
+        title="Mark as Mastered"
+        message="Are you sure you want to mark this card as mastered? It will be excluded from future review sessions."
+        confirmText="Yes, Mark as Mastered"
+        cancelText="Cancel"
+        onConfirm={confirmMarkAsMastered}
+        onCancel={() => setShowMasterConfirm(false)}
+        variant="info"
+      />
+
+      {/* Practice Modal */}
+      <PracticeModal
+        isOpen={practiceMode}
+        onClose={() => setPracticeMode(false)}
+        practiceSentence={practiceSentence}
+        showFurigana={showFurigana}
+        showTranslation={showTranslation}
+        onToggleFurigana={() => setShowFurigana(!showFurigana)}
+        onToggleTranslation={() => setShowTranslation(!showTranslation)}
+        onGenerateNew={generatePracticeSentence}
+        generatingSentence={generatingSentence}
+        practiceInput={practiceInput}
+        onInputChange={(value) => {
+          setPracticeInput(value);
+          if (practiceFeedback !== 'none') setPracticeFeedback('none');
+        }}
+        onCheck={handlePracticeCheck}
+        practiceFeedback={practiceFeedback}
+        practiceInputRef={practiceInputRef}
+      />
+
       <SmartDictionaryFAB />
     </main >
   );
 }
-
