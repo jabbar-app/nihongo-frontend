@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageSquareIcon, SendIcon, XIcon, BookOpenIcon, MenuIcon, ArrowLeftIcon, LoaderIcon, Volume2Icon, Settings2Icon, PlusIcon, MicIcon, SquareIcon, PencilIcon, Trash2Icon } from 'lucide-react';
+import { MessageSquareIcon, SendIcon, XIcon, BookOpenIcon, MenuIcon, ArrowLeftIcon, LoaderIcon, Volume2Icon, Settings2Icon, PlusIcon, MicIcon, SquareIcon, PencilIcon, Trash2Icon, LightbulbIcon } from 'lucide-react';
 import ThemeToggle from '@/components/theme-toggle';
 import { api } from '@/lib/api';
 import Card from "@/components/ui/card";
@@ -76,6 +76,9 @@ export default function PracticePage() {
   const [inputError, setInputError] = useState('');
   const [sending, setSending] = useState(false);
   const [ending, setEnding] = useState(false);
+  const [clue, setClue] = useState<{ structure: string; vocabulary: string } | null>(null);
+  const [loadingClue, setLoadingClue] = useState(false);
+  const [showFurigana, setShowFurigana] = useState(false);
 
   // Audio state
   const [autoPlay, setAutoPlay] = useState(true);
@@ -120,6 +123,13 @@ export default function PracticePage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Helper to parse {Kanji|Reading} format to HTML
+  const parseFurigana = (text: string) => {
+    if (!text) return '';
+    // Replace {Kanji|Reading} with <ruby>Kanji<rt>Reading</rt></ruby>
+    return text.replace(/\{([^|]+)\|([^}]+)\}/g, '<ruby>$1<rt>$2</rt></ruby>');
+  };
+
   // Auto-scroll logic
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -160,7 +170,7 @@ export default function PracticePage() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors md:hidden"
+              className="p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors md:hidden cursor-pointer"
             >
               <MenuIcon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
             </button>
@@ -515,6 +525,7 @@ export default function PracticePage() {
       setSession(null);
       setSelectedReading(null);
       setShowReadingSelector(true);
+      setClue(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to end session');
     } finally {
@@ -522,8 +533,22 @@ export default function PracticePage() {
     }
   };
 
+  const getClue = async () => {
+    if (!session || loadingClue) return;
+    setLoadingClue(true);
+    setError('');
+    try {
+      const data = await api.post<{ structure: string; vocabulary: string }>(`/api/v1/practice/sessions/${session.id}/clue`, {});
+      setClue(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to get clue');
+    } finally {
+      setLoadingClue(false);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.altKey) {
       e.preventDefault();
       if (messageInput.trim() && !sending) {
         sendMessage();
@@ -572,7 +597,7 @@ export default function PracticePage() {
               </button>
               <button
                 onClick={() => router.push('/practice/history')}
-                className="px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors cursor-pointer"
               >
                 History
               </button>
@@ -585,7 +610,7 @@ export default function PracticePage() {
           <button
             type="button"
             onClick={openAddModal}
-            className="fixed right-4 bottom-[calc(5rem+1rem)] md:bottom-8 md:right-8 z-40 w-14 h-14 rounded-full bg-teal-600 hover:bg-teal-700 active:scale-95 text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center border-0 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+            className="fixed right-4 bottom-[calc(5rem+1rem)] md:bottom-8 md:right-8 z-40 w-14 h-14 rounded-full bg-teal-600 hover:bg-teal-700 active:scale-95 text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center border-0 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 cursor-pointer"
             title="Add New Material"
           >
             <PlusIcon className="w-7 h-7" />
@@ -625,6 +650,24 @@ export default function PracticePage() {
                 </div>
               </Card>
 
+              {/* Particle Practice Option */}
+              <Card
+                className={`p-4 mb-4 cursor-pointer hover:shadow-md transition-shadow dark:bg-gray-800 dark:border dark:border-gray-600 ${startingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => !startingSession && router.push('/particles')}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
+                    <div className="text-xl font-bold text-purple-600 dark:text-purple-400">は</div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-gray-900 dark:text-white">Particle Practice</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Master usage of は, が, を, に, and more with quizzes
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
               {/* Reading List */}
               {readings.length > 0 ? (
                 <div className="space-y-3">
@@ -651,7 +694,7 @@ export default function PracticePage() {
                           <button
                             type="button"
                             onClick={() => openEditModal(reading)}
-                            className="p-2 rounded-lg text-gray-500 hover:text-teal-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-teal-400 transition-colors"
+                            className="p-2 rounded-lg text-gray-500 hover:text-teal-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-teal-400 transition-colors cursor-pointer"
                             title="Edit"
                           >
                             <PencilIcon className="w-4 h-4" />
@@ -660,7 +703,7 @@ export default function PracticePage() {
                             type="button"
                             onClick={(e) => openDeleteConfirm(reading, e)}
                             disabled={deleteLoadingId === reading.id}
-                            className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-gray-700 dark:hover:text-red-400 transition-colors disabled:opacity-50"
+                            className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-gray-700 dark:hover:text-red-400 transition-colors disabled:opacity-50 cursor-pointer"
                             title="Delete"
                           >
                             {deleteLoadingId === reading.id ? (
@@ -731,7 +774,7 @@ export default function PracticePage() {
                       <button
                         type="button"
                         onClick={closeMaterialModal}
-                        className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                       >
                         <XIcon className="w-5 h-5" />
                       </button>
@@ -818,6 +861,11 @@ export default function PracticePage() {
               <div className="max-w-md mx-auto md:max-w-4xl p-4 space-y-4">
                 {session.messages.map((msg) => (
                   <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    {/* Debug Log */}
+                    {(() => {
+                      if (showSettings) console.log('Message Content:', msg.content, 'Furigana Mode:', showFurigana);
+                      return null;
+                    })()}
                     <div className={`max-w-[80%] ${msg.role === 'user' ? 'order-2' : 'order-1'}`}>
                       {msg.role === 'assistant' && (
                         <div className="flex items-center justify-between mb-1">
@@ -825,7 +873,7 @@ export default function PracticePage() {
                           <button
                             onClick={() => playingAudioId === msg.id ? stopAudio() : playAudio(msg.id, msg.content)}
                             disabled={loadingAudioId === msg.id}
-                            className={`p-1 rounded-full transition-colors ${playingAudioId === msg.id ? 'text-teal-600 bg-teal-50 dark:text-teal-400 dark:bg-teal-900/20' : 'text-gray-400 hover:text-teal-600 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                            className={`p-1 rounded-full transition-colors ${playingAudioId === msg.id ? 'text-teal-600 bg-teal-50 dark:text-teal-400 dark:bg-teal-900/20' : 'text-gray-400 hover:text-teal-600 hover:bg-gray-100 dark:hover:bg-gray-800'} cursor-pointer`}
                             title="Play Audio"
                           >
                             {loadingAudioId === msg.id ? (
@@ -843,9 +891,13 @@ export default function PracticePage() {
                         className={`rounded-2xl px-4 py-2 ${msg.role === 'user'
                           ? 'bg-teal-600 text-white'
                           : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
-                          }`}
+                          } ${!showFurigana ? 'furigana-hidden' : ''}`}
                       >
-                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                        {msg.role === 'assistant' ? (
+                          <div className="whitespace-pre-wrap [&>ruby]:mx-0.5" dangerouslySetInnerHTML={{ __html: parseFurigana(msg.content) }} />
+                        ) : (
+                          <div className="whitespace-pre-wrap">{msg.content}</div>
+                        )}
                       </div>
                       {msg.role === 'assistant' && msg.feedback && (
                         <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -869,116 +921,170 @@ export default function PracticePage() {
 
             {/* Input Area */}
             <div className="flex-none px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-40 w-full">
-              <div className="max-w-md mx-auto md:max-w-4xl px-4">
-                <div className={`relative border-2 ${isListening ? 'border-red-500 bg-red-50/10 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : (inputError ? 'border-red-300 dark:border-red-800 bg-red-50/50 dark:bg-red-900/10' : 'border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 focus-within:border-teal-500/50 dark:focus-within:border-teal-400/50 focus-within:ring-4 focus-within:ring-teal-500/10 dark:focus-within:ring-teal-400/10')} rounded-xl transition-all duration-300`}>
-                  <Textarea
-                    ref={inputRef}
-                    value={messageInput}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setMessageInput(value);
+              <div className="max-w-md mx-auto md:max-w-4xl px-4 space-y-4">
 
-                      // Validate Japanese
-                      // Allow empty, or Japanese chars (Hiragana, Katakana, Kanji, Punctuation, Numbers, Whitespace)
-                      const isJapanese = /^[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\uff00-\uff9f\u4e00-\u9faf\u3400-\u4dbf\n\r\s\d～！、。？]*$/.test(value);
-
-                      if (!isJapanese && value.length > 0) {
-                        setInputError('Please enter Japanese text only (Hiragana, Katakana, Kanji).');
-                      } else {
-                        setInputError('');
-                      }
-                    }}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Type your message in Japanese..."
-                    disabled={sending}
-                    className={`w-full !border-none !ring-0 !shadow-none !bg-transparent px-4 py-3 min-h-[60px] ${inputError ? '!text-red-600' : ''}`}
-                  />
-                  <div className="flex justify-between items-center px-2 pb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="relative" ref={settingsRef}>
-                        <button
-                          onClick={() => setShowSettings(!showSettings)}
-                          className="p-2 rounded-full text-gray-400 hover:text-teal-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                          title="Session Settings"
-                        >
-                          <Settings2Icon className="w-5 h-5" />
-                        </button>
-
-                        {showSettings && (
-                          <div className="absolute bottom-full left-0 mb-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-2 z-50 animate-in fade-in slide-in-from-bottom-2">
-                            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-2 py-1 mb-1 uppercase tracking-wider">
-                              Session Settings
-                            </div>
-
-                            <button
-                              onClick={() => setAutoPlay(!autoPlay)}
-                              className="w-full flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm text-left"
-                            >
-                              <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
-                                <Volume2Icon className="w-4 h-4" />
-                                <span>Auto-play Audio</span>
-                              </div>
-                              <div className={`w-8 h-4 rounded-full relative transition-colors ${autoPlay ? 'bg-teal-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
-                                <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform shadow-sm ${autoPlay ? 'translate-x-4' : ''}`}></div>
-                              </div>
-                            </button>
-
-                            <div className="h-px bg-gray-100 dark:bg-gray-700 my-1"></div>
-
-                            <button
-                              onClick={() => {
-                                setShowSettings(false);
-                                endSession();
-                              }}
-                              disabled={ending}
-                              className="w-full flex items-center gap-2 px-2 py-2 rounded-md hover:bg-red-50 dark:hover:bg-red-900/10 text-red-600 dark:text-red-400 transition-colors text-sm text-left disabled:opacity-50"
-                            >
-                              {ending ? <LoaderIcon className="w-4 h-4 animate-spin" /> : <XIcon className="w-4 h-4" />}
-                              <span>End Session</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="text-xs text-red-500 font-medium px-2 py-1 min-h-[1.5em]">
-                        {inputError}
-                      </div>
+                {/* Clue Display */}
+                {clue && (
+                  <div className="relative p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-sm animate-in fade-in slide-in-from-bottom-2">
+                    <button
+                      onClick={() => setClue(null)}
+                      className="absolute top-2 right-2 text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200 cursor-pointer"
+                    >
+                      <XIcon className="w-4 h-4" />
+                    </button>
+                    <div className="mb-2">
+                      <span className="font-semibold text-yellow-800 dark:text-yellow-200 block mb-1">Sentence Structure Hint:</span>
+                      <p className="text-yellow-700 dark:text-yellow-300">{clue.structure}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {isSpeechSupported && (
-                        <button
-                          onClick={isListening ? stopListening : () => { resetTranscript(); startListening(); }}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 ${isListening ? 'bg-red-500 text-white shadow-lg shadow-red-500/30 scale-105 ring-2 ring-red-400 ring-offset-2 dark:ring-offset-gray-900' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-teal-600'}`}
-                          title={isListening ? "Stop Recording" : "Voice Input (Japanese)"}
-                        >
-                          {isListening ? (
-                            <>
-                              <SquareIcon className="w-4 h-4 fill-current animate-pulse" />
-                              <span className="text-xs font-bold animate-pulse">Listening...</span>
-                            </>
-                          ) : (
-                            <MicIcon className="w-5 h-5" />
-                          )}
-                        </button>
-                      )}
-                      <Button
-                        onClick={sendMessage}
-                        disabled={!messageInput.trim() || sending || !!inputError}
-                        size="sm"
-                        className="rounded-lg"
+                    {clue.vocabulary && (
+                      <div>
+                        <span className="font-semibold text-yellow-800 dark:text-yellow-200 block mb-1">Useful Vocabulary:</span>
+                        <p className="text-yellow-700 dark:text-yellow-300 whitespace-pre-wrap">{clue.vocabulary}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex gap-2 items-end">
+
+                  {/* Clue Button */}
+
+                  <div className="relative flex-1">
+                    <Textarea
+                      ref={inputRef}
+                      value={messageInput}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setMessageInput(value);
+
+                        // Validate Japanese
+                        const isJapanese = /^[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\uff00-\uff9f\u4e00-\u9faf\u3400-\u4dbf\n\r\s\d～！、。？]*$/.test(value);
+
+                        if (!isJapanese && value.length > 0) {
+                          setInputError('Please enter Japanese text only (Hiragana, Katakana, Kanji).');
+                        } else {
+                          setInputError('');
+                        }
+                      }}
+                      onKeyDown={handleKeyDown}
+                      placeholder={isListening ? "Listening..." : "Type your message in Japanese..."}
+                      disabled={sending}
+                      className={`w-full !border-none !ring-0 !shadow-none !bg-transparent px-4 py-3 min-h-[50px] max-h-[150px] resize-none pr-10 ${inputError ? '!text-red-600' : ''} ${isListening ? 'bg-red-50 dark:bg-red-900/10' : ''}`}
+                      rows={1}
+                    />
+
+                    <div className="absolute right-2 bottom-2">
+                      <button
+                        type="button"
+                        onClick={isListening ? stopListening : startListening}
+                        className={`p-2 rounded-full transition-all ${isListening
+                          ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/30'
+                          : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                          } ${!isSpeechSupported ? 'hidden' : ''} cursor-pointer`}
+                        title={isListening ? "Stop recording" : "Voice input"}
                       >
-                        {sending ? (
-                          <LoaderIcon className="w-4 h-4 animate-spin" />
+                        {isListening ? (
+                          <SquareIcon className="w-4 h-4 fill-current" />
                         ) : (
-                          <SendIcon className="w-4 h-4" />
+                          <MicIcon className="w-4 h-4" />
                         )}
-                      </Button>
+                      </button>
                     </div>
+                  </div>
+
+                  <Button
+                    onClick={sendMessage}
+                    disabled={!messageInput.trim() || sending || !!inputError}
+                    className="h-[50px] w-[50px] p-0 flex items-center justify-center flex-shrink-0 rounded-xl bg-teal-600 hover:bg-teal-700 text-white shadow-md transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {sending ? (
+                      <LoaderIcon className="w-6 h-6 animate-spin" />
+                    ) : (
+                      <SendIcon className="w-6 h-6 ml-0.5" />
+                    )}
+                  </Button>
+                </div>
+
+                <div className="flex justify-between items-center px-1 pb-1">
+                  <div className="relative" ref={settingsRef}>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setShowSettings(!showSettings)}
+                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-teal-600 dark:text-gray-500 dark:hover:text-teal-400 transition-colors cursor-pointer"
+                        title="Settings"
+                      >
+                        <Settings2Icon className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={getClue}
+                        disabled={loadingClue || sending}
+                        className="p-1 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                        title="Get a hint"
+                      >
+                        {loadingClue ? <LoaderIcon className="w-4 h-4 animate-spin" /> : <LightbulbIcon className="w-4 h-4" />}
+                      </button>
+                    </div>
+
+                    {showSettings && (
+                      <div className="absolute bottom-full left-0 mb-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-2 z-50 animate-in fade-in slide-in-from-bottom-2">
+                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-2 py-1 mb-1 uppercase tracking-wider">
+                          Session Settings
+                        </div>
+
+                        <button
+                          onClick={() => setAutoPlay(!autoPlay)}
+                          className="w-full flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm text-left"
+                        >
+                          <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                            <Volume2Icon className="w-4 h-4" />
+                            <span>Auto-play Audio</span>
+                          </div>
+                          <div className={`w-8 h-4 rounded-full relative transition-colors ${autoPlay ? 'bg-teal-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                            <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform shadow-sm ${autoPlay ? 'translate-x-4' : ''}`}></div>
+                          </div>
+                        </button>
+
+                        <button
+                          onClick={() => setShowFurigana(!showFurigana)}
+                          className="w-full flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm text-left cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                            <span className="text-xs font-bold border border-current rounded px-0.5">あ</span>
+                            <span>Furigana</span>
+                          </div>
+                          <div className={`w-8 h-4 rounded-full relative transition-colors ${showFurigana ? 'bg-teal-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                            <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform shadow-sm ${showFurigana ? 'translate-x-4' : ''}`}></div>
+                          </div>
+                        </button>
+
+                        <div className="h-px bg-gray-100 dark:bg-gray-700 my-1"></div>
+
+                        <button
+                          onClick={() => {
+                            setShowSettings(false);
+                            endSession();
+                          }}
+                          disabled={ending}
+                          className="w-full flex items-center gap-2 px-2 py-2 rounded-md hover:bg-red-50 dark:hover:bg-red-900/10 text-red-600 dark:text-red-400 transition-colors text-sm text-left disabled:opacity-50"
+                        >
+                          {ending ? <LoaderIcon className="w-4 h-4 animate-spin" /> : <XIcon className="w-4 h-4" />}
+                          <span>End Session</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-xs text-red-500 font-medium ml-2 flex-1 text-right">
+                    {inputError}
                   </div>
                 </div>
               </div>
             </div>
           </>
+        )}{settingsRef.current && showSettings && (
+          /* Settings Portal or Modal could go here if implemented properly */
+          null
         )}
       </div>
     </main>

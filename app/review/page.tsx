@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { LightbulbIcon, LightbulbOffIcon, CheckCircleIcon, XCircleIcon, ArrowLeftIcon, Volume2Icon, MenuIcon, UndoIcon, SkipForwardIcon, ClockIcon, TrendingUpIcon, XIcon, EditIcon, TrashIcon, SparklesIcon, SaveIcon, LoaderIcon, PencilIcon, BookOpenIcon, EyeIcon, EyeOffIcon, LanguagesIcon, RotateCcwIcon } from 'lucide-react';
+import { LightbulbIcon, LightbulbOffIcon, CheckCircleIcon, XCircleIcon, ArrowLeftIcon, Volume2Icon, MenuIcon, UndoIcon, SkipForwardIcon, ClockIcon, TrendingUpIcon, XIcon, EditIcon, TrashIcon, SparklesIcon, SaveIcon, LoaderIcon, PencilIcon, BookOpenIcon, EyeIcon, EyeOffIcon, LanguagesIcon, RotateCcwIcon, SendIcon } from 'lucide-react';
 import ThemeToggle from '@/components/theme-toggle';
 import Card from "@/components/ui/card";
 import { api } from '@/lib/api';
@@ -11,6 +11,7 @@ import Input from "@/components/ui/input";
 import ProgressBar from "@/components/ui/progress-bar";
 import MobileSidebar from '@/components/mobile-sidebar';
 import CardEditModal from '@/components/card-edit-modal';
+import SmartDictionaryFAB from '@/components/smart-dictionary-fab';
 
 interface UserCardData {
   repetition: number;
@@ -500,7 +501,6 @@ export default function ReviewPage() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Generated sentence:', data.generated);
 
         // data.generated contains { ja, en, id, ja_annotated }
         if (data.generated && data.generated.ja) {
@@ -1288,22 +1288,24 @@ export default function ReviewPage() {
                         Mnemonic
                       </button>
                     )}
-                    {!showExampleSentence && cardContent.example_sentence_ja && (
+                    {!showExampleSentence && (
                       <button
-                        onClick={() => setShowExampleSentence(true)}
+                        onClick={() => {
+                          setShowExampleSentence(true);
+                          // Initialize practice sentence if not set
+                          if (!practiceSentence && cardContent.example_sentence_ja) {
+                            setPracticeSentence({
+                              ja: cardContent.example_sentence_ja,
+                              en: cardContent.example_sentence_en,
+                              id: cardContent.example_sentence_id
+                            });
+                          }
+                          setTimeout(() => practiceInputRef.current?.focus(), 100);
+                        }}
                         className="flex-1 py-2 text-sm text-teal-600 dark:text-teal-400 font-medium bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/40 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <BookOpenIcon className="w-4 h-4" />
-                        Example
-                      </button>
-                    )}
-                    {!practiceMode && (
-                      <button
-                        onClick={() => setPracticeMode(true)}
-                        className="flex-1 py-2 text-sm text-teal-600 dark:text-teal-400 font-medium bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/40 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <PencilIcon className="w-4 h-4" />
-                        Practice
+                        Example / Practice
                       </button>
                     )}
                   </div>
@@ -1401,39 +1403,106 @@ export default function ReviewPage() {
                   </div>
                 )}
 
-                {/* Example Sentence Content */}
-                {showExampleSentence && cardContent.example_sentence_ja && (
+                {/* Example / Practice Content (Merged) */}
+                {showExampleSentence && (
                   <div className="animate-in slide-in-from-top-2 fade-in duration-200">
                     <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 text-left border border-gray-100 dark:border-gray-700">
                       <div className="flex items-center justify-between mb-3">
-                        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Example</div>
-                        <button
-                          onClick={() => setShowExampleSentence(false)}
-                          className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-                          title="Hide"
-                        >
-                          <XIcon className="w-4 h-4 text-gray-400" />
-                        </button>
-                      </div>
-                      <div className="text-lg text-gray-800 dark:text-gray-200 font-serif mb-3 leading-relaxed border-l-4 border-teal-500 pl-3">
-                        {cardContent.example_sentence_ja}
+                        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Example & Practice</div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setShowFurigana(!showFurigana)}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${showFurigana ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400'}`}
+                            title="Toggle Furigana"
+                          >
+                            <LanguagesIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setShowTranslation(!showTranslation)}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${showTranslation ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400'}`}
+                            title="Toggle Translation"
+                          >
+                            {showTranslation ? <EyeIcon className="w-4 h-4" /> : <EyeOffIcon className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={generatePracticeSentence}
+                            disabled={generatingSentence}
+                            className="p-1.5 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/30 text-teal-600 dark:text-teal-400 transition-colors cursor-pointer"
+                            title="New Sentence"
+                          >
+                            <RotateCcwIcon className={`w-4 h-4 ${generatingSentence ? 'animate-spin' : ''}`} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowExampleSentence(false);
+                              setPracticeSentence(null); // Reset when closing? maybe not if we want persistence
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                            title="Hide"
+                          >
+                            <XIcon className="w-4 h-4 text-gray-400" />
+                          </button>
+                        </div>
                       </div>
 
-                      {/* Translations */}
-                      <div className="space-y-2 mt-4 ml-4">
-                        {cardContent.example_sentence_id && (
-                          <div className="text-sm text-gray-600 dark:text-gray-400 italic">
-                            <span className="font-medium text-gray-400 not-italic text-xs mr-2">ID</span>
-                            {cardContent.example_sentence_id}
+                      {/* Sentence Display */}
+                      <div className="mb-4">
+                        {generatingSentence ? (
+                          <div className="h-16 flex items-center justify-center">
+                            <LoaderIcon className="w-6 h-6 animate-spin text-teal-500" />
                           </div>
-                        )}
-                        {cardContent.example_sentence_en && (
-                          <div className="text-sm text-gray-600 dark:text-gray-400 italic">
-                            <span className="font-medium text-gray-400 not-italic text-xs mr-2">EN</span>
-                            {cardContent.example_sentence_en}
-                          </div>
+                        ) : practiceSentence ? (
+                          <>
+                            <div className="text-lg text-gray-800 dark:text-gray-200 font-serif mb-2 leading-relaxed border-l-4 border-teal-500 pl-3 [&_rt]:text-xs [&_rt]:text-gray-500 [&_rt]:font-sans">
+                              {showFurigana && practiceSentence.ja_annotated ? (
+                                <span dangerouslySetInnerHTML={{ __html: practiceSentence.ja_annotated }} />
+                              ) : (
+                                practiceSentence.ja
+                              )}
+                            </div>
+                            {showTranslation && (practiceSentence.id || practiceSentence.en) && (
+                              <div className="space-y-1 ml-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                                {practiceSentence.id && (
+                                  <div className="text-xs text-gray-400 font-mono">ID: {practiceSentence.id}</div>
+                                )}
+                                {practiceSentence.en && (
+                                  <div className="text-sm text-gray-600 dark:text-gray-400 italic">{practiceSentence.en}</div>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="text-gray-500 text-sm italic">No example available. Click refresh to generate one.</div>
                         )}
                       </div>
+
+                      {/* Practice Input */}
+                      {practiceSentence && (
+                        <div className="relative mt-4">
+                          <Input
+                            ref={practiceInputRef}
+                            value={practiceInput}
+                            onChange={(e) => {
+                              setPracticeInput(e.target.value);
+                              if (practiceFeedback !== 'none') setPracticeFeedback('none');
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handlePracticeCheck();
+                            }}
+                            placeholder="Type the sentence to practice..."
+                            className={`pr-10 ${practiceFeedback === 'correct' ? 'border-green-500 bg-green-50 dark:bg-green-900/20' :
+                              practiceFeedback === 'incorrect' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : ''
+                              }`}
+                          />
+                          <button
+                            onClick={handlePracticeCheck}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-teal-600 transition-colors"
+                          >
+                            <SendIcon className={`w-5 h-5 ${practiceFeedback === 'correct' ? 'text-green-500' : ''}`} />
+                          </button>
+                        </div>
+                      )}
+
                     </div>
                   </div>
                 )}
@@ -1568,176 +1637,8 @@ export default function ReviewPage() {
         />
       )}
 
-      {/* Sentence Practice Overlay */}
-      {practiceMode && (
-        <div className="fixed inset-0 z-[100] bg-white dark:bg-gray-900 flex flex-col animate-in slide-in-from-bottom-5 duration-300">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
-            <div className="flex items-center gap-3">
-              <button onClick={() => setPracticeMode(false)} className="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">
-                <ArrowLeftIcon className="w-6 h-6 text-gray-600 dark:text-gray-300" />
-              </button>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Sentence Practice</h2>
-            </div>
-            <button
-              onClick={generatePracticeSentence}
-              disabled={generatingSentence}
-              className="text-sm font-medium text-teal-600 dark:text-teal-400 px-3 py-1.5 bg-teal-50 dark:bg-teal-900/20 rounded-lg disabled:opacity-50 transition-colors hover:bg-teal-100 dark:hover:bg-teal-900/30 cursor-pointer"
-            >
-              {generatingSentence ? "Generating..." : "New Sentence"}
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center max-w-2xl mx-auto w-full space-y-8">
-
-            {/* Target Sentence Display */}
-            <div className="w-full text-center space-y-4">
-              {generatingSentence ? (
-                <div className="py-12 flex justify-center">
-                  <LoaderIcon className="w-8 h-8 animate-spin text-teal-500" />
-                </div>
-              ) : practiceSentence ? (
-                <>
-                  {/* Japanese Text (Hideable) */}
-                  <div
-                    className={`text-2xl md:text-3xl font-serif text-gray-900 dark:text-white leading-relaxed transition-all duration-300 cursor-pointer [&_rt]:text-sm [&_rt]:text-gray-500 [&_rt]:font-sans [&_ruby]:mx-0.5 ${isBlindMode ? 'blur-md select-none opacity-50 hover:opacity-75 hover:blur-sm' : ''}`}
-                    onClick={() => isBlindMode && setBlindMode(false)}
-                    title={isBlindMode ? "Click to reveal" : ""}
-                  >
-                    {showFurigana && practiceSentence.ja_annotated ? (
-                      <span dangerouslySetInnerHTML={{ __html: practiceSentence.ja_annotated }} />
-                    ) : (
-                      practiceSentence.ja
-                    )}
-                  </div>
-
-                  {/* Translation */}
-                  <div
-                    className={`text-gray-500 dark:text-gray-400 text-lg transition-all duration-300 cursor-pointer ${!showTranslation ? 'blur-md select-none opacity-50 hover:opacity-75 hover:blur-sm' : ''}`}
-                    onClick={() => !showTranslation && setShowTranslation(true)}
-                    title={!showTranslation ? "Click to reveal" : ""}
-                  >
-                    {practiceSentence.id || practiceSentence.en || "No translation available"}
-                  </div>
-                </>
-              ) : (
-                <div className="text-gray-500">No sentence available. Tap "New Sentence".</div>
-              )}
-            </div>
-
-            {/* Input Area */}
-            <div className="w-full space-y-4">
-              <div className="relative">
-                <Input
-                  ref={practiceInputRef}
-                  value={practiceInput}
-                  onChange={(e) => {
-                    setPracticeInput(e.target.value);
-                    if (practiceFeedback !== 'correct') setPracticeFeedback('none');
-                  }}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') handlePracticeCheck();
-                  }}
-                  disabled={generatingSentence || practiceFeedback === 'correct'}
-                  placeholder="Type the Japanese sentence..."
-                  className={`text-center text-xl p-6 h-auto ${practiceFeedback === 'correct' ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' :
-                    practiceFeedback === 'incorrect' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : ''
-                    }`}
-                  autoComplete="off"
-                />
-                {practiceFeedback === 'correct' && (
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-green-600 dark:text-green-400 animate-in zoom-in">
-                    <CheckCircleIcon className="w-8 h-8" />
-                  </div>
-                )}
-              </div>
-
-              {/* Feedback Text */}
-              <div className="h-6 text-center">
-                {practiceFeedback === 'correct' && <span className="text-green-600 font-bold animate-pulse">Correct! Generating new sentence...</span>}
-                {practiceFeedback === 'incorrect' && <span className="text-red-500 font-medium">Incorrect, try again.</span>}
-              </div>
-
-              {/* Buttons Action */}
-              <div className="flex gap-4 justify-center w-full max-w-sm mx-auto">
-                <Button
-                  onClick={() => setPracticeMode(false)}
-                  variant="outline"
-                  className="flex-1 py-3 text-base font-medium cursor-pointer"
-                >
-                  End Session
-                </Button>
-                <Button
-                  onClick={handlePracticeCheck}
-                  disabled={generatingSentence || practiceFeedback === 'correct' || !practiceInput.trim()}
-                  className="flex-1 py-3 text-base font-medium cursor-pointer"
-                >
-                  Check Answer
-                </Button>
-              </div>
-            </div>
-
-            {/* Controls - Card Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg">
-              {/* Blind Mode Toggle */}
-              <label className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer select-none ${isBlindMode ? 'bg-teal-50 border-teal-200 dark:bg-teal-900/20 dark:border-teal-800' : 'bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}`}>
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-full ${isBlindMode ? 'bg-teal-100 text-teal-600 dark:bg-teal-900/40 dark:text-teal-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>
-                    {isBlindMode ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-                  </div>
-                  <div className="flex flex-col">
-                    <span className={`text-sm font-bold ${isBlindMode ? 'text-teal-900 dark:text-teal-100' : 'text-gray-900 dark:text-gray-100'}`}>Blind Mode</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">Hide Japanese text</span>
-                  </div>
-                </div>
-                <div className={`relative w-11 h-6 rounded-full transition-colors ${isBlindMode ? 'bg-teal-500' : 'bg-gray-200 dark:bg-gray-700'}`}>
-                  <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${isBlindMode ? 'translate-x-5' : ''}`} />
-                  <input type="checkbox" checked={isBlindMode} onChange={(e) => setBlindMode(e.target.checked)} className="hidden" />
-                </div>
-              </label>
-
-              {/* Furigana Toggle */}
-              <label className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer select-none ${showFurigana ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800' : 'bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}`}>
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-full ${showFurigana ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>
-                    <LanguagesIcon className="w-5 h-5" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className={`text-sm font-bold ${showFurigana ? 'text-orange-900 dark:text-orange-100' : 'text-gray-900 dark:text-gray-100'}`}>Furigana</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">Show readings</span>
-                  </div>
-                </div>
-                <div className={`relative w-11 h-6 rounded-full transition-colors ${showFurigana ? 'bg-orange-500' : 'bg-gray-200 dark:bg-gray-700'}`}>
-                  <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${showFurigana ? 'translate-x-5' : ''}`} />
-                  <input type="checkbox" checked={showFurigana} onChange={(e) => setShowFurigana(e.target.checked)} className="hidden" />
-                </div>
-              </label>
-
-              {/* Translation Toggle */}
-              <label className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer select-none sm:col-span-2 ${showTranslation ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' : 'bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}`}>
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-full ${showTranslation ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>
-                    <BookOpenIcon className="w-5 h-5" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className={`text-sm font-bold ${showTranslation ? 'text-blue-900 dark:text-blue-100' : 'text-gray-900 dark:text-gray-100'}`}>Meaning</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">Show translation</span>
-                  </div>
-                </div>
-                <div className={`relative w-11 h-6 rounded-full transition-colors ${showTranslation ? 'bg-blue-500' : 'bg-gray-200 dark:bg-gray-700'}`}>
-                  <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${showTranslation ? 'translate-x-5' : ''}`} />
-                  <input type="checkbox" checked={showTranslation} onChange={(e) => setShowTranslation(e.target.checked)} className="hidden" />
-                </div>
-              </label>
-            </div>
-          </div>
-
-          <div className="p-4 text-center text-gray-400 text-xs">
-            Press Enter to check • Auto-advances on success
-          </div>
-        </div>
-      )}
-    </main>
+      <SmartDictionaryFAB />
+    </main >
   );
 }
 

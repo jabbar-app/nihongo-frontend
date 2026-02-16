@@ -41,6 +41,11 @@
         font-size: 0.6em;
         line-height: 1.2;
     }
+
+    /* Hide furigana when class is present on container */
+    .furigana-hidden rt {
+        display: none;
+    }
 }
 
 /* Explicit background utilities - Tailwind v4 fallback */
