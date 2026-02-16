@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon, LoaderIcon, RefreshCwIcon, Volume2Icon } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -17,7 +17,7 @@ interface Question {
     meaning: string;
 }
 
-export default function ParticlePracticePage() {
+function PracticeContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const targetParticle = searchParams.get('particle');
@@ -209,5 +209,17 @@ export default function ParticlePracticePage() {
                 )}
             </div>
         </main>
+    );
+}
+
+export default function ParticlePracticePage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+                <LoaderIcon className="w-8 h-8 animate-spin text-teal-600" />
+            </div>
+        }>
+            <PracticeContent />
+        </Suspense>
     );
 }
