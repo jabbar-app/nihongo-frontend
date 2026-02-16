@@ -45,3 +45,7 @@ public/sw.js
 public/sw.js.map
 public/workbox-*.js
 public/workbox-*.js.map
+
+# typescript error logs
+tsc_error*.log
+tsc_output*.txt
