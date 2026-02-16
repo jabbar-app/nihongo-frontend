@@ -149,6 +149,7 @@ export default function ReviewPage() {
   const [lastAction, setLastAction] = useState<{ cardId: number, grade: string, reviewId: number } | null>(null);
   const [skippedCards, setSkippedCards] = useState<number[]>([]);
   const [reviewStreak, setReviewStreak] = useState(0);
+  const [masteringCard, setMasteringCard] = useState(false);
 
   // --- Sentence Practice State ---
   const [practiceMode, setPracticeMode] = useState(false);
@@ -464,6 +465,46 @@ export default function ReviewPage() {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleMarkAsMastered() {
+    if (!queue || !currentCard) return;
+
+    const confirmed = confirm('Mark this card as mastered? It will be excluded from future reviews.');
+    if (!confirmed) return;
+
+    setMasteringCard(true);
+    const cardContent = currentCard;
+
+    try {
+      await api.post(`/api/v1/cards/${currentCard.id}/master`, {});
+
+      // Remove card from queue
+      const nextQueue = queue.slice(1);
+      setQueue(nextQueue);
+
+      if (nextQueue.length > 0) {
+        setCurrentCard(nextQueue[0]);
+        setShowAnswer(false);
+        setKanaInput('');
+        setKanaCorrect(null);
+        setShowFeedback(false);
+        triggerHaptic('light');
+      } else {
+        // Queue empty, component will re-render and show summary screen
+      }
+
+      // Update session stats
+      setSessionStats(prev => ({
+        ...prev,
+        total: prev.total + 1,
+        correct: prev.correct + 1,
+      }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to mark card as mastered');
+    } finally {
+      setMasteringCard(false);
     }
   }
 
@@ -1270,6 +1311,19 @@ export default function ReviewPage() {
                     <span className="text-[10px] sm:text-xs font-semibold text-emerald-600/90 dark:text-emerald-400/90 uppercase tracking-wide mt-0.5">Easy</span>
                   </button>
                 </div>
+
+                {/* Mark as Mastered Button */}
+                <button
+                  onClick={handleMarkAsMastered}
+                  disabled={masteringCard}
+                  className="mt-3 w-full cursor-pointer flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-purple-50/50 dark:bg-purple-950/30 border border-purple-200/60 dark:border-purple-900/40 hover:bg-purple-100 dark:hover:bg-purple-900/40 hover:border-purple-300 dark:hover:border-purple-800 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+                  title="Mark as Mastered"
+                >
+                  <CheckCircleIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  <span className="text-sm font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide">
+                    {masteringCard ? 'Mastering...' : 'Mark as Mastered'}
+                  </span>
+                </button>
               </div>
             )}
 

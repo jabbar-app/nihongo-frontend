@@ -168,25 +168,29 @@ export default function Navbar() {
 
           {/* Desktop Navigation - Center */}
           <div className="hidden md:flex items-center gap-1">
-            <Link
-              href="/"
-              className={`px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/')
-                ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
-                }`}
-            >
-              <HomeIcon className="w-5 h-5" />
-            </Link>
+            {!isLoggedIn && (
+              <Link
+                href="/"
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/')
+                  ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                  }`}
+              >
+                <HomeIcon className="w-5 h-5" />
+                <span>Home</span>
+              </Link>
+            )}
             {isLoggedIn && (
               <>
                 <Link
                   href="/dashboard"
-                  className={`px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/dashboard')
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/dashboard')
                     ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
                     }`}
                 >
-                  Dashboard
+                  <HomeIcon className="w-5 h-5" />
+                  <span>Dashboard</span>
                 </Link>
                 <Link
                   href="/materials"
