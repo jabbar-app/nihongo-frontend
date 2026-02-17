@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   CameraIcon, PhoneIcon, MailIcon, UserIcon,
   ChevronDownIcon, AwardIcon, TrendingUpIcon, TargetIcon,
-  CalendarIcon, ChevronRightIcon, MenuIcon, FileTextIcon, StickyNoteIcon, SettingsIcon, ActivityIcon, TrashIcon, LoaderIcon, LockIcon, EyeIcon, EyeOffIcon, HistoryIcon
+  CalendarIcon, ChevronRightIcon, MenuIcon, FileTextIcon, StickyNoteIcon, SettingsIcon, ActivityIcon, TrashIcon, LoaderIcon, LockIcon, HistoryIcon
 } from 'lucide-react';
 import Card from '@/components/ui/card';
 import Input from '@/components/ui/input';
@@ -140,9 +140,6 @@ export default function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
@@ -461,7 +458,10 @@ export default function ProfilePage() {
         {activeTab === 'stats' && dashboardData && (
           <div className="px-4 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="grid grid-cols-2 gap-3">
-              <Card className="p-4 dark:border dark:border-gray-600">
+              <Card
+                className="p-4 dark:border dark:border-gray-600 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                onClick={() => router.push('/history/mastered')}
+              >
                 <div className="flex items-center gap-2 mb-2">
                   <AwardIcon className="w-5 h-5 text-teal-600 dark:text-teal-400" />
                   <div className="text-xs text-gray-500 dark:text-gray-400">Cards Mastered</div>
@@ -721,23 +721,13 @@ export default function ProfilePage() {
                     <LockIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     Current Password
                   </label>
-                  <div className="relative">
-                    <Input
-                      type={showCurrentPassword ? 'text' : 'password'}
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="Enter current password"
-                      required
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
-                    >
-                      {showCurrentPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
-                    </button>
-                  </div>
+                  <Input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter current password"
+                    required
+                  />
                 </div>
 
                 <div>
@@ -745,23 +735,13 @@ export default function ProfilePage() {
                     <LockIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     New Password
                   </label>
-                  <div className="relative">
-                    <Input
-                      type={showNewPassword ? 'text' : 'password'}
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Enter new password (min. 8 characters)"
-                      required
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
-                    >
-                      {showNewPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
-                    </button>
-                  </div>
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password (min. 8 characters)"
+                    required
+                  />
                 </div>
 
                 <div>
@@ -769,23 +749,13 @@ export default function ProfilePage() {
                     <LockIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     Confirm New Password
                   </label>
-                  <div className="relative">
-                    <Input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Confirm new password"
-                      required
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
-                    >
-                      {showConfirmPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
-                    </button>
-                  </div>
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm new password"
+                    required
+                  />
                 </div>
 
                 <Button

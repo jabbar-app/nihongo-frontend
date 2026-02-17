@@ -1,5 +1,5 @@
 import { InputHTMLAttributes, forwardRef, useState } from 'react';
-import { EyeIcon, EyeOffIcon, SearchIcon } from 'lucide-react';
+import { SearchIcon } from 'lucide-react';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
     label?: string;
@@ -43,13 +43,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
                         <button
                             type="button"
                             onClick={togglePassword}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors cursor-pointer text-xs font-medium"
                         >
-                            {showPassword ? (
-                                <EyeOffIcon className="w-5 h-5" />
-                            ) : (
-                                <EyeIcon className="w-5 h-5" />
-                            )}
+                            {showPassword ? 'ショー' : 'ハイド'}
                         </button>
                     )}
                 </div>
