@@ -10,6 +10,7 @@ import BottomNav from "@/components/bottom-nav";
 import { ThemeProvider } from "@/lib/theme-context";
 import { HeaderProvider } from "@/components/header-context";
 import PWAInstallPrompt from "@/components/pwa-install-prompt";
+import { Toaster } from "sonner";
 
 const inter = Inter({
     variable: "--font-sans",
@@ -130,6 +131,7 @@ export default function RootLayout({
                 </ThemeProvider>
                 <Analytics />
                 <SpeedInsights />
+                <Toaster position="top-right" richColors />
             </body>
         </html>
     );
