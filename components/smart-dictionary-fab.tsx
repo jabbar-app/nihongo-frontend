@@ -70,14 +70,16 @@ export default function SmartDictionaryFAB() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setIsOpen(false)}
-                            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+                            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+                            style={{ zIndex: 60 }}
                         />
                         {/* Modal */}
                         <motion.div
                             initial={{ opacity: 0, y: 100, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 100, scale: 0.95 }}
-                            className="fixed inset-x-4 bottom-24 md:inset-auto md:bottom-24 md:right-8 md:w-96 z-50 flex flex-col max-h-[80vh]"
+                            className="fixed inset-x-4 bottom-24 md:inset-auto md:bottom-24 md:right-8 md:w-96 flex flex-col max-h-[80vh]"
+                            style={{ zIndex: 70 }}
                         >
                             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700 flex flex-col">
                                 {/* Header / Search */}
@@ -176,13 +178,14 @@ export default function SmartDictionaryFAB() {
 
             {/* FAB Trigger */}
             <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setIsOpen(!isOpen)}
-            className={`fixed right-6 bottom-24 md:right-8 md:bottom-8 z-40 p-4 rounded-full shadow-lg transition-all duration-300 ${isOpen
-                        ? 'bg-gray-800 text-white rotate-45'
-                        : 'bg-teal-600 text-white hover:bg-teal-500 hover:shadow-teal-500/30'
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsOpen(!isOpen)}
+                className={`fixed right-6 bottom-24 md:right-8 md:bottom-8 p-4 rounded-full shadow-lg transition-all duration-300 ${isOpen
+                    ? 'bg-gray-800 text-white rotate-45'
+                    : 'bg-teal-600 text-white hover:bg-teal-500 hover:shadow-teal-500/30'
                     }`}
+                style={{ zIndex: 60 }}
             >
                 {isOpen ? <XIcon className="w-6 h-6" /> : <BookOpenIcon className="w-6 h-6" />}
             </motion.button>

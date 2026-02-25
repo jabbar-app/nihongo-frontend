@@ -34,11 +34,14 @@ interface CardContent {
   example_sentence_ja: string | null;
   example_sentence_id: string | null;
   example_sentence_en: string | null;
-  practice_sentence_ja?: string | null;
-  practice_sentence_ja_annotated?: string | null;
-  practice_sentence_id?: string | null;
-  practice_sentence_en?: string | null;
-  practice_sentence_generated_at?: string | null;
+  example_sentence_en: string | null;
+  practice_sentences?: {
+    id: number;
+    ja: string;
+    ja_annotated: string | null;
+    id_translation: string | null;
+    en_translation: string | null;
+  }[];
   audio_word_url: string | null;
   audio_sentence_url: string | null;
   tags: string[] | null;
@@ -99,9 +102,15 @@ export default function ReviewPage() {
   const cardRef = useRef<HTMLDivElement>(null);
   const [editingCard, setEditingCard] = useState<any>(null);
 
-  // Helper: input is Japanese (kana/kanji) → we check kana; otherwise we check meaning
-  const isJapanese = (text: string) => {
-    return /^[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\uff00-\uff9f\u4e00-\u9faf\u3400-\u4dbf\n\r\s\d～！、。？]*$/.test(text);
+  const kanaMatchesCard = (input: string, card: CardContent): boolean => {
+    const normalize = (text: string) => text.toLowerCase().replace(/[\s\-\.\(\)]/g, '');
+    const nInput = normalize(input);
+    if (!nInput) return false;
+
+    if (nInput === normalize(card.kana)) return true;
+
+    const candidates = card.kana.split(/[,、/・]/).map(normalize).filter(s => s.length > 0);
+    return candidates.includes(nInput);
   };
 
   const meaningMatchesCard = (input: string, card: CardContent): boolean => {
@@ -161,8 +170,8 @@ export default function ReviewPage() {
 
   // --- Sentence Practice State ---
   const [practiceMode, setPracticeMode] = useState(false);
-  // We store the current target sentence here. Initially populated from card, then AI.
-  const [practiceSentence, setPracticeSentence] = useState<{ ja: string; ja_annotated?: string; en?: string; id?: string; } | null>(null);
+  const [practiceSentence, setPracticeSentence] = useState<{ ja: string; ja_annotated?: string; id?: string; en?: string; } | null>(null);
+  const [currentPracticeSentenceIndex, setCurrentPracticeSentenceIndex] = useState(0);
   const [practiceInput, setPracticeInput] = useState('');
   const [isBlindMode, setBlindMode] = useState(false);
   const [showFurigana, setShowFurigana] = useState(false);
@@ -187,14 +196,7 @@ export default function ReviewPage() {
       return;
     }
 
-    const inputIsJapanese = isJapanese(trimmed);
-    let correct: boolean;
-
-    if (inputIsJapanese) {
-      correct = trimmed.toLowerCase() === cardContent.kana.toLowerCase();
-    } else {
-      correct = meaningMatchesCard(trimmed, cardContent);
-    }
+    const correct = kanaMatchesCard(trimmed, cardContent) || meaningMatchesCard(trimmed, cardContent);
 
     setKanaCorrect(correct);
     setShowFeedback(true);
@@ -526,6 +528,23 @@ export default function ReviewPage() {
   async function generatePracticeSentence() {
     if (!currentCard) return;
 
+    // First check if there is a next sentence in the array
+    if (currentCard.practice_sentences && currentPracticeSentenceIndex + 1 < currentCard.practice_sentences.length) {
+      const nextIndex = currentPracticeSentenceIndex + 1;
+      const nextSentence = currentCard.practice_sentences[nextIndex];
+      setPracticeSentence({
+        ja: nextSentence.ja,
+        ja_annotated: nextSentence.ja_annotated ?? undefined,
+        id: nextSentence.id_translation ?? undefined,
+        en: nextSentence.en_translation ?? undefined,
+      });
+      setCurrentPracticeSentenceIndex(nextIndex);
+      setPracticeInput('');
+      setPracticeFeedback('none');
+      setTimeout(() => practiceInputRef.current?.focus(), 100);
+      return;
+    }
+
     setGeneratingSentence(true);
     setPracticeFeedback('none');
 
@@ -534,8 +553,8 @@ export default function ReviewPage() {
       if (!token) return;
 
       const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-      // Request new sentence, save=false to avoid overwriting card data
-      // Exclude current sentence to avoid duplicates
+      // Request new sentence, save=true by default in backend but explicit here
+      // Exclude current sentence to avoid duplicates (backend handles exclusion array)
       const excludeSentence = practiceSentence?.ja;
       console.log('Generating sentence, excluding:', excludeSentence);
 
@@ -557,9 +576,25 @@ export default function ReviewPage() {
       if (response.ok) {
         const data = await response.json();
 
-        // data.generated contains { ja, en, id, ja_annotated }
+        // data.generated contains { ja, en, id, ja_annotated, practice_sentence_id }
         if (data.generated && data.generated.ja) {
           setPracticeSentence(data.generated);
+
+          // Also append to currentCard's local state array so we can navigate back/forth in the future if needed
+          const newSentenceObj = {
+            id: data.generated.practice_sentence_id || Date.now(),
+            ja: data.generated.ja,
+            ja_annotated: data.generated.ja_annotated || null,
+            id_translation: data.generated.id || null,
+            en_translation: data.generated.en || null,
+          };
+
+          if (!currentCard.practice_sentences) {
+            currentCard.practice_sentences = [];
+          }
+          currentCard.practice_sentences.push(newSentenceObj);
+          setCurrentPracticeSentenceIndex(currentCard.practice_sentences.length - 1);
+
           setPracticeInput('');
           setTimeout(() => practiceInputRef.current?.focus(), 100);
         }
@@ -748,22 +783,27 @@ export default function ReviewPage() {
       setPracticeInput('');
       setPracticeFeedback('none');
       setGeneratingSentence(false);
+      setCurrentPracticeSentenceIndex(0);
     } else {
       // Initialize practice sentence from card if available
       if (currentCard && !practiceSentence) {
-        if (currentCard.practice_sentence_ja) {
+        if (currentCard.practice_sentences && currentCard.practice_sentences.length > 0) {
+          const firstSentence = currentCard.practice_sentences[0];
           setPracticeSentence({
-            ja: currentCard.practice_sentence_ja,
-            ja_annotated: currentCard.practice_sentence_ja_annotated ?? undefined,
-            en: currentCard.practice_sentence_en ?? undefined,
-            id: currentCard.practice_sentence_id ?? undefined
+            ja: firstSentence.ja,
+            ja_annotated: firstSentence.ja_annotated ?? undefined,
+            id: firstSentence.id_translation ?? undefined,
+            en: firstSentence.en_translation ?? undefined,
           });
+          setCurrentPracticeSentenceIndex(0);
         } else {
           setPracticeSentence({
             ja: currentCard.example_sentence_ja || '',
             en: currentCard.example_sentence_en ?? undefined,
             id: currentCard.example_sentence_id ?? undefined
           });
+          // -1 means we are showing the example sentence, not a practice sentence
+          setCurrentPracticeSentenceIndex(-1);
         }
       }
       setTimeout(() => practiceInputRef.current?.focus(), 100);
@@ -797,13 +837,8 @@ export default function ReviewPage() {
     if (!currentCard || kanaCorrect !== null || showFeedback || !kanaInput.trim()) return;
     const cardContent = currentCard;
     const trimmed = kanaInput.trim();
-    const inputIsJapanese = isJapanese(trimmed);
-    let correct: boolean;
-    if (inputIsJapanese) {
-      correct = trimmed.toLowerCase() === cardContent.kana.toLowerCase();
-    } else {
-      correct = meaningMatchesCard(trimmed, cardContent);
-    }
+    const correct = kanaMatchesCard(trimmed, cardContent) || meaningMatchesCard(trimmed, cardContent);
+
     if (correct) {
       setKanaCorrect(true);
       setShowFeedback(true);
@@ -1393,21 +1428,22 @@ export default function ReviewPage() {
                           setPracticeMode(true);
                           // Initialize from persisted practice sentence or fallback to example sentence
                           if (!practiceSentence) {
-                            if (cardContent.practice_sentence_ja) {
-                              // Use persisted AI-generated practice sentence
+                            if (cardContent.practice_sentences && cardContent.practice_sentences.length > 0) {
+                              const firstSentence = cardContent.practice_sentences[0];
                               setPracticeSentence({
-                                ja: cardContent.practice_sentence_ja ?? "",
-                                ja_annotated: cardContent.practice_sentence_ja_annotated ?? undefined,
-                                en: cardContent.practice_sentence_en ?? undefined,
-                                id: cardContent.practice_sentence_id ?? undefined
+                                ja: firstSentence.ja,
+                                ja_annotated: firstSentence.ja_annotated ?? undefined,
+                                id: firstSentence.id_translation ?? undefined,
+                                en: firstSentence.en_translation ?? undefined,
                               });
-                            } else if (cardContent.example_sentence_ja) {
-                              // Fallback to original example sentence
+                              setCurrentPracticeSentenceIndex(0);
+                            } else {
                               setPracticeSentence({
-                                ja: cardContent.example_sentence_ja ?? "",
+                                ja: cardContent.example_sentence_ja || '',
                                 en: cardContent.example_sentence_en ?? undefined,
                                 id: cardContent.example_sentence_id ?? undefined
                               });
+                              setCurrentPracticeSentenceIndex(-1);
                             }
                           }
                           setTimeout(() => practiceInputRef.current?.focus(), 300);
@@ -1670,13 +1706,12 @@ export default function ReviewPage() {
         onGenerateNew={generatePracticeSentence}
         generatingSentence={generatingSentence}
         practiceInput={practiceInput}
-        onInputChange={(value) => {
-          setPracticeInput(value);
-          if (practiceFeedback !== 'none') setPracticeFeedback('none');
-        }}
+        onInputChange={setPracticeInput}
         onCheck={handlePracticeCheck}
         practiceFeedback={practiceFeedback}
         practiceInputRef={practiceInputRef}
+        currentIndex={currentPracticeSentenceIndex}
+        totalSentences={currentCard?.practice_sentences?.length || 0}
       />
 
       <SmartDictionaryFAB />
