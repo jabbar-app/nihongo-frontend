@@ -4,12 +4,15 @@ import { useEffect, RefObject, Ref } from 'react';
 import { XIcon, RotateCcwIcon, LanguagesIcon, EyeIcon, EyeOffIcon, SendIcon, LoaderIcon } from 'lucide-react';
 import Button from './ui/button';
 import Input from './ui/input';
+import ReactMarkdown from 'react-markdown';
 
 interface PracticeSentence {
+    practice_sentence_id?: number | string;
     ja: string;
     ja_annotated?: string;
     id?: string;
     en?: string;
+    explanation?: string;
 }
 
 interface PracticeModalProps {
@@ -20,6 +23,8 @@ interface PracticeModalProps {
     showTranslation: boolean;
     onToggleFurigana: () => void;
     onToggleTranslation: () => void;
+    generatingFurigana: boolean;
+    generatingTranslation: boolean;
     onGenerateNew: () => void;
     generatingSentence: boolean;
     practiceInput: string;
@@ -39,6 +44,8 @@ export function PracticeModal({
     showTranslation,
     onToggleFurigana,
     onToggleTranslation,
+    generatingFurigana,
+    generatingTranslation,
     onGenerateNew,
     generatingSentence,
     practiceInput,
@@ -117,23 +124,25 @@ export function PracticeModal({
                         <div className="flex items-center gap-2 justify-center flex-wrap">
                             <button
                                 onClick={onToggleFurigana}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors cursor-pointer text-sm font-medium ${showFurigana
+                                disabled={generatingFurigana}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors cursor-pointer text-sm font-medium disabled:opacity-50 ${showFurigana
                                     ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
                                     : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                                     }`}
                             >
-                                <LanguagesIcon className="w-4 h-4" />
+                                {generatingFurigana ? <LoaderIcon className="w-4 h-4 animate-spin" /> : <LanguagesIcon className="w-4 h-4" />}
                                 <span>Furigana</span>
                             </button>
 
                             <button
                                 onClick={onToggleTranslation}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors cursor-pointer text-sm font-medium ${showTranslation
+                                disabled={generatingTranslation}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors cursor-pointer text-sm font-medium disabled:opacity-50 ${showTranslation
                                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                     : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                                     }`}
                             >
-                                {showTranslation ? <EyeIcon className="w-4 h-4" /> : <EyeOffIcon className="w-4 h-4" />}
+                                {generatingTranslation ? <LoaderIcon className="w-4 h-4 animate-spin" /> : (showTranslation ? <EyeIcon className="w-4 h-4" /> : <EyeOffIcon className="w-4 h-4" />)}
                                 <span>Translation</span>
                             </button>
                         </div>
@@ -158,19 +167,40 @@ export function PracticeModal({
                                     </div>
 
                                     {/* Translation */}
-                                    {showTranslation && (practiceSentence.id || practiceSentence.en) && (
-                                        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 space-y-3 border border-gray-200 dark:border-gray-700 animate-in fade-in slide-in-from-top-2 duration-200">
-                                            {practiceSentence.id && (
-                                                <div className="text-base sm:text-lg text-gray-700 dark:text-gray-300">
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wide mr-2">ID:</span>
-                                                    {practiceSentence.id}
+                                    {showTranslation && (practiceSentence.id || practiceSentence.en || practiceSentence.explanation || generatingTranslation) && (
+                                        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 space-y-4 border border-gray-200 dark:border-gray-700 animate-in fade-in slide-in-from-top-2 duration-200">
+                                            {generatingTranslation ? (
+                                                <div className="flex flex-col items-center justify-center py-4 space-y-3">
+                                                    <LoaderIcon className="w-6 h-6 animate-spin text-teal-500" />
+                                                    <p className="text-sm text-gray-500">Generating contextual translation and explanation...</p>
                                                 </div>
-                                            )}
-                                            {practiceSentence.en && (
-                                                <div className="text-base sm:text-lg text-gray-600 dark:text-gray-400 italic">
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wide not-italic mr-2">EN:</span>
-                                                    {practiceSentence.en}
-                                                </div>
+                                            ) : (
+                                                <>
+                                                    {(practiceSentence.id || practiceSentence.en) && (
+                                                        <div className="space-y-3 pb-4 border-b border-gray-100 dark:border-gray-700">
+                                                            {practiceSentence.id && (
+                                                                <div className="text-base sm:text-lg text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                                                                    <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide mt-1 min-w-[30px]">ID:</span>
+                                                                    <span>{practiceSentence.id}</span>
+                                                                </div>
+                                                            )}
+                                                            {practiceSentence.en && (
+                                                                <div className="text-base sm:text-lg text-gray-600 dark:text-gray-400 italic flex items-start gap-2">
+                                                                    <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide not-italic mt-1 min-w-[30px]">EN:</span>
+                                                                    <span>{practiceSentence.en}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {practiceSentence.explanation && (
+                                                        <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none prose-teal py-2 text-gray-700 dark:text-gray-300">
+                                                            <ReactMarkdown>
+                                                                {practiceSentence.explanation}
+                                                            </ReactMarkdown>
+                                                        </div>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     )}

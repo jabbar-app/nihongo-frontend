@@ -34,13 +34,13 @@ interface CardContent {
   example_sentence_ja: string | null;
   example_sentence_id: string | null;
   example_sentence_en: string | null;
-  example_sentence_en: string | null;
   practice_sentences?: {
     id: number;
     ja: string;
     ja_annotated: string | null;
     id_translation: string | null;
     en_translation: string | null;
+    explanation?: string | null;
   }[];
   audio_word_url: string | null;
   audio_sentence_url: string | null;
@@ -170,12 +170,14 @@ export default function ReviewPage() {
 
   // --- Sentence Practice State ---
   const [practiceMode, setPracticeMode] = useState(false);
-  const [practiceSentence, setPracticeSentence] = useState<{ ja: string; ja_annotated?: string; id?: string; en?: string; } | null>(null);
+  const [practiceSentence, setPracticeSentence] = useState<{ practice_sentence_id?: number; ja: string; ja_annotated?: string; id?: string; en?: string; explanation?: string; } | null>(null);
   const [currentPracticeSentenceIndex, setCurrentPracticeSentenceIndex] = useState(0);
   const [practiceInput, setPracticeInput] = useState('');
   const [isBlindMode, setBlindMode] = useState(false);
   const [showFurigana, setShowFurigana] = useState(false);
   const [showTranslation, setShowTranslation] = useState(true);
+  const [generatingFurigana, setGeneratingFurigana] = useState(false);
+  const [generatingTranslation, setGeneratingTranslation] = useState(false);
   const [practiceFeedback, setPracticeFeedback] = useState<'none' | 'correct' | 'incorrect'>('none');
   const [generatingSentence, setGeneratingSentence] = useState(false);
   const practiceInputRef = useRef<HTMLInputElement>(null);
@@ -533,10 +535,12 @@ export default function ReviewPage() {
       const nextIndex = currentPracticeSentenceIndex + 1;
       const nextSentence = currentCard.practice_sentences[nextIndex];
       setPracticeSentence({
+        practice_sentence_id: nextSentence.id,
         ja: nextSentence.ja,
         ja_annotated: nextSentence.ja_annotated ?? undefined,
         id: nextSentence.id_translation ?? undefined,
         en: nextSentence.en_translation ?? undefined,
+        explanation: nextSentence.explanation ?? undefined,
       });
       setCurrentPracticeSentenceIndex(nextIndex);
       setPracticeInput('');
@@ -584,9 +588,10 @@ export default function ReviewPage() {
           const newSentenceObj = {
             id: data.generated.practice_sentence_id || Date.now(),
             ja: data.generated.ja,
-            ja_annotated: data.generated.ja_annotated || null,
-            id_translation: data.generated.id || null,
-            en_translation: data.generated.en || null,
+            ja_annotated: null,
+            id_translation: null,
+            en_translation: null,
+            explanation: null,
           };
 
           if (!currentCard.practice_sentences) {
@@ -594,6 +599,11 @@ export default function ReviewPage() {
           }
           currentCard.practice_sentences.push(newSentenceObj);
           setCurrentPracticeSentenceIndex(currentCard.practice_sentences.length - 1);
+
+          setPracticeSentence({
+            practice_sentence_id: newSentenceObj.id,
+            ja: newSentenceObj.ja,
+          });
 
           setPracticeInput('');
           setTimeout(() => practiceInputRef.current?.focus(), 100);
@@ -603,6 +613,108 @@ export default function ReviewPage() {
       console.error('Failed to generate sentence:', err);
     } finally {
       setGeneratingSentence(false);
+    }
+  }
+
+  async function handleToggleFurigana() {
+    if (showFurigana) {
+      setShowFurigana(false);
+      return;
+    }
+
+    if (practiceSentence?.ja_annotated) {
+      setShowFurigana(true);
+      return;
+    }
+
+    if (!practiceSentence?.practice_sentence_id) {
+      // Fallback for example sentence or unsaved
+      setShowFurigana(true);
+      return;
+    }
+
+    setGeneratingFurigana(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/v1/practice-sentences/${practiceSentence.practice_sentence_id}/furigana`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setPracticeSentence(prev => prev ? { ...prev, ja_annotated: data.ja_annotated } : null);
+
+        // Update local card model
+        if (currentCard && currentCard.practice_sentences) {
+          const sentenceIndex = currentCard.practice_sentences.findIndex(s => s.id === practiceSentence.practice_sentence_id);
+          if (sentenceIndex > -1) {
+            currentCard.practice_sentences[sentenceIndex].ja_annotated = data.ja_annotated;
+          }
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setGeneratingFurigana(false);
+      setShowFurigana(true);
+    }
+  }
+
+  async function handleToggleTranslation() {
+    if (showTranslation) {
+      setShowTranslation(false);
+      return;
+    }
+
+    if (practiceSentence?.explanation || practiceSentence?.en || practiceSentence?.id) {
+      setShowTranslation(true);
+      return;
+    }
+
+    if (!practiceSentence?.practice_sentence_id) {
+      setShowTranslation(true);
+      return;
+    }
+
+    setGeneratingTranslation(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/v1/practice-sentences/${practiceSentence.practice_sentence_id}/translate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setPracticeSentence(prev => prev ? {
+          ...prev,
+          en: data.en_translation,
+          id: data.id_translation,
+          explanation: data.explanation
+        } : null);
+
+        // Update local card model
+        if (currentCard && currentCard.practice_sentences) {
+          const sentenceIndex = currentCard.practice_sentences.findIndex(s => s.id === practiceSentence.practice_sentence_id);
+          if (sentenceIndex > -1) {
+            currentCard.practice_sentences[sentenceIndex].en_translation = data.en_translation;
+            currentCard.practice_sentences[sentenceIndex].id_translation = data.id_translation;
+            currentCard.practice_sentences[sentenceIndex].explanation = data.explanation;
+          }
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setGeneratingTranslation(false);
+      setShowTranslation(true);
     }
   }
 
@@ -790,10 +902,12 @@ export default function ReviewPage() {
         if (currentCard.practice_sentences && currentCard.practice_sentences.length > 0) {
           const firstSentence = currentCard.practice_sentences[0];
           setPracticeSentence({
+            practice_sentence_id: firstSentence.id,
             ja: firstSentence.ja,
             ja_annotated: firstSentence.ja_annotated ?? undefined,
             id: firstSentence.id_translation ?? undefined,
             en: firstSentence.en_translation ?? undefined,
+            explanation: firstSentence.explanation ?? undefined,
           });
           setCurrentPracticeSentenceIndex(0);
         } else {
@@ -1431,10 +1545,12 @@ export default function ReviewPage() {
                             if (cardContent.practice_sentences && cardContent.practice_sentences.length > 0) {
                               const firstSentence = cardContent.practice_sentences[0];
                               setPracticeSentence({
+                                practice_sentence_id: firstSentence.id,
                                 ja: firstSentence.ja,
                                 ja_annotated: firstSentence.ja_annotated ?? undefined,
                                 id: firstSentence.id_translation ?? undefined,
                                 en: firstSentence.en_translation ?? undefined,
+                                explanation: firstSentence.explanation ?? undefined,
                               });
                               setCurrentPracticeSentenceIndex(0);
                             } else {
@@ -1701,8 +1817,10 @@ export default function ReviewPage() {
         practiceSentence={practiceSentence}
         showFurigana={showFurigana}
         showTranslation={showTranslation}
-        onToggleFurigana={() => setShowFurigana(!showFurigana)}
-        onToggleTranslation={() => setShowTranslation(!showTranslation)}
+        onToggleFurigana={handleToggleFurigana}
+        onToggleTranslation={handleToggleTranslation}
+        generatingFurigana={generatingFurigana}
+        generatingTranslation={generatingTranslation}
         onGenerateNew={generatePracticeSentence}
         generatingSentence={generatingSentence}
         practiceInput={practiceInput}
