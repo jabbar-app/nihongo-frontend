@@ -35,7 +35,9 @@ interface PracticeSession {
   messages: any[];
   context: string | null;
   reading_id: number | null;
-  // ... other fields
+  title: string | null;
+  started_at: string | null;
+  ended_at: string | null;
 }
 
 export default function InterviewPracticePage() {
@@ -228,7 +230,7 @@ export default function InterviewPracticePage() {
     if (!session) return;
     try {
       setEnding(true);
-      await api.post(`/api/v1/practice/sessions/${session.id}/end`);
+      await api.post(`/api/v1/practice/sessions/${session.id}/end`, {});
       setSession(null);
       // Optional: Show summary
     } catch (err) {

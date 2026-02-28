@@ -12,7 +12,6 @@ import ProgressBar from "@/components/ui/progress-bar";
 import MobileSidebar from '@/components/mobile-sidebar';
 import CardEditModal from '@/components/card-edit-modal';
 import ConfirmModal from '@/components/confirm-modal';
-import { PracticeModal } from '@/components/practice-modal';
 import SmartDictionaryFAB from '@/components/smart-dictionary-fab';
 
 interface UserCardData {
@@ -167,20 +166,6 @@ export default function ReviewPage() {
   const [reviewStreak, setReviewStreak] = useState(0);
   const [masteringCard, setMasteringCard] = useState(false);
   const [showMasterConfirm, setShowMasterConfirm] = useState(false);
-
-  // --- Sentence Practice State ---
-  const [practiceMode, setPracticeMode] = useState(false);
-  const [practiceSentence, setPracticeSentence] = useState<{ practice_sentence_id?: number; ja: string; ja_annotated?: string; id?: string; en?: string; explanation?: string; } | null>(null);
-  const [currentPracticeSentenceIndex, setCurrentPracticeSentenceIndex] = useState(0);
-  const [practiceInput, setPracticeInput] = useState('');
-  const [isBlindMode, setBlindMode] = useState(false);
-  const [showFurigana, setShowFurigana] = useState(false);
-  const [showTranslation, setShowTranslation] = useState(true);
-  const [generatingFurigana, setGeneratingFurigana] = useState(false);
-  const [generatingTranslation, setGeneratingTranslation] = useState(false);
-  const [practiceFeedback, setPracticeFeedback] = useState<'none' | 'correct' | 'incorrect'>('none');
-  const [generatingSentence, setGeneratingSentence] = useState(false);
-  const practiceInputRef = useRef<HTMLInputElement>(null);
 
   // --- Helper Functions (Hoisted) ---
 
@@ -525,227 +510,6 @@ export default function ReviewPage() {
     }
   }
 
-  // --- Sentence Practice Functions ---
-
-  async function generatePracticeSentence() {
-    if (!currentCard) return;
-
-    // First check if there is a next sentence in the array
-    if (currentCard.practice_sentences && currentPracticeSentenceIndex + 1 < currentCard.practice_sentences.length) {
-      const nextIndex = currentPracticeSentenceIndex + 1;
-      const nextSentence = currentCard.practice_sentences[nextIndex];
-      setPracticeSentence({
-        practice_sentence_id: nextSentence.id,
-        ja: nextSentence.ja,
-        ja_annotated: nextSentence.ja_annotated ?? undefined,
-        id: nextSentence.id_translation ?? undefined,
-        en: nextSentence.en_translation ?? undefined,
-        explanation: nextSentence.explanation ?? undefined,
-      });
-      setCurrentPracticeSentenceIndex(nextIndex);
-      setPracticeInput('');
-      setPracticeFeedback('none');
-      setTimeout(() => practiceInputRef.current?.focus(), 100);
-      return;
-    }
-
-    setGeneratingSentence(true);
-    setPracticeFeedback('none');
-
-    try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) return;
-
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-      // Request new sentence, save=true by default in backend but explicit here
-      // Exclude current sentence to avoid duplicates (backend handles exclusion array)
-      const excludeSentence = practiceSentence?.ja;
-      console.log('Generating sentence, excluding:', excludeSentence);
-
-      const response = await fetch(`${apiUrl}/api/v1/cards/${currentCard.id}/generate-sentence`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-
-        body: JSON.stringify({
-          target_lang: 'both',
-          save: true,
-          exclude: excludeSentence
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-
-        // data.generated contains { ja, en, id, ja_annotated, practice_sentence_id }
-        if (data.generated && data.generated.ja) {
-          setPracticeSentence(data.generated);
-
-          // Also append to currentCard's local state array so we can navigate back/forth in the future if needed
-          const newSentenceObj = {
-            id: data.generated.practice_sentence_id || Date.now(),
-            ja: data.generated.ja,
-            ja_annotated: null,
-            id_translation: null,
-            en_translation: null,
-            explanation: null,
-          };
-
-          if (!currentCard.practice_sentences) {
-            currentCard.practice_sentences = [];
-          }
-          currentCard.practice_sentences.push(newSentenceObj);
-          setCurrentPracticeSentenceIndex(currentCard.practice_sentences.length - 1);
-
-          setPracticeSentence({
-            practice_sentence_id: newSentenceObj.id,
-            ja: newSentenceObj.ja,
-          });
-
-          setPracticeInput('');
-          setTimeout(() => practiceInputRef.current?.focus(), 100);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to generate sentence:', err);
-    } finally {
-      setGeneratingSentence(false);
-    }
-  }
-
-  async function handleToggleFurigana() {
-    if (showFurigana) {
-      setShowFurigana(false);
-      return;
-    }
-
-    if (practiceSentence?.ja_annotated) {
-      setShowFurigana(true);
-      return;
-    }
-
-    if (!practiceSentence?.practice_sentence_id) {
-      // Fallback for example sentence or unsaved
-      setShowFurigana(true);
-      return;
-    }
-
-    setGeneratingFurigana(true);
-    try {
-      const token = localStorage.getItem('auth_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/v1/practice-sentences/${practiceSentence.practice_sentence_id}/furigana`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setPracticeSentence(prev => prev ? { ...prev, ja_annotated: data.ja_annotated } : null);
-
-        // Update local card model
-        if (currentCard && currentCard.practice_sentences) {
-          const sentenceIndex = currentCard.practice_sentences.findIndex(s => s.id === practiceSentence.practice_sentence_id);
-          if (sentenceIndex > -1) {
-            currentCard.practice_sentences[sentenceIndex].ja_annotated = data.ja_annotated;
-          }
-        }
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setGeneratingFurigana(false);
-      setShowFurigana(true);
-    }
-  }
-
-  async function handleToggleTranslation() {
-    if (showTranslation) {
-      setShowTranslation(false);
-      return;
-    }
-
-    if (practiceSentence?.explanation || practiceSentence?.en || practiceSentence?.id) {
-      setShowTranslation(true);
-      return;
-    }
-
-    if (!practiceSentence?.practice_sentence_id) {
-      setShowTranslation(true);
-      return;
-    }
-
-    setGeneratingTranslation(true);
-    try {
-      const token = localStorage.getItem('auth_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/v1/practice-sentences/${practiceSentence.practice_sentence_id}/translate`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setPracticeSentence(prev => prev ? {
-          ...prev,
-          en: data.en_translation,
-          id: data.id_translation,
-          explanation: data.explanation
-        } : null);
-
-        // Update local card model
-        if (currentCard && currentCard.practice_sentences) {
-          const sentenceIndex = currentCard.practice_sentences.findIndex(s => s.id === practiceSentence.practice_sentence_id);
-          if (sentenceIndex > -1) {
-            currentCard.practice_sentences[sentenceIndex].en_translation = data.en_translation;
-            currentCard.practice_sentences[sentenceIndex].id_translation = data.id_translation;
-            currentCard.practice_sentences[sentenceIndex].explanation = data.explanation;
-          }
-        }
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setGeneratingTranslation(false);
-      setShowTranslation(true);
-    }
-  }
-
-  function handlePracticeCheck() {
-    if (!practiceSentence || !practiceSentence.ja) return;
-
-    // Normalize: remove punctuation, spaces for looser checking? 
-    // For now, let's require semi-strict matching but ignore whitespace at ends and simple punctuation differences?
-    // Actually user (shadowing) expects exact match usually, but punctuation can be annoying.
-    // Let's strip punctuation for comparison.
-
-    const normalize = (s: string) => s.replace(/[、。！？\s]/g, '');
-    const input = normalize(practiceInput);
-    const target = normalize(practiceSentence.ja);
-
-    if (input === target) {
-      setPracticeFeedback('correct');
-      triggerHaptic('medium');
-
-      // Auto-advance after 1.5s
-      setTimeout(() => {
-        generatePracticeSentence();
-      }, 1500);
-    } else {
-      setPracticeFeedback('incorrect');
-      triggerHaptic('heavy');
-      // Reset feedback after delay so they can try again
-      setTimeout(() => setPracticeFeedback('none'), 2000);
-    }
-  }
-
   // --- Effects ---
 
   useEffect(() => {
@@ -878,7 +642,6 @@ export default function ReviewPage() {
       setCurrentCardStartTime(Date.now());
       setMnemonic(null);
       setSimilarCards([]);
-      setShowFurigana(false);
       setEditingMnemonic(false);
       setMnemonicContent('');
       setShowExampleSentence(false);
@@ -887,42 +650,6 @@ export default function ReviewPage() {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [currentCard, hintScope]);
-
-  // Reset practice state when card changes or mode closes
-  useEffect(() => {
-    if (!practiceMode) {
-      setPracticeSentence(null);
-      setPracticeInput('');
-      setPracticeFeedback('none');
-      setGeneratingSentence(false);
-      setCurrentPracticeSentenceIndex(0);
-    } else {
-      // Initialize practice sentence from card if available
-      if (currentCard && !practiceSentence) {
-        if (currentCard.practice_sentences && currentCard.practice_sentences.length > 0) {
-          const firstSentence = currentCard.practice_sentences[0];
-          setPracticeSentence({
-            practice_sentence_id: firstSentence.id,
-            ja: firstSentence.ja,
-            ja_annotated: firstSentence.ja_annotated ?? undefined,
-            id: firstSentence.id_translation ?? undefined,
-            en: firstSentence.en_translation ?? undefined,
-            explanation: firstSentence.explanation ?? undefined,
-          });
-          setCurrentPracticeSentenceIndex(0);
-        } else {
-          setPracticeSentence({
-            ja: currentCard.example_sentence_ja || '',
-            en: currentCard.example_sentence_en ?? undefined,
-            id: currentCard.example_sentence_id ?? undefined
-          });
-          // -1 means we are showing the example sentence, not a practice sentence
-          setCurrentPracticeSentenceIndex(-1);
-        }
-      }
-      setTimeout(() => practiceInputRef.current?.focus(), 100);
-    }
-  }, [practiceMode, currentCard]);
 
   useEffect(() => {
     if (showAnswer && currentCard) {
@@ -1538,32 +1265,7 @@ export default function ReviewPage() {
                     )}
                     {!showExampleSentence && (
                       <button
-                        onClick={() => {
-                          setPracticeMode(true);
-                          // Initialize from persisted practice sentence or fallback to example sentence
-                          if (!practiceSentence) {
-                            if (cardContent.practice_sentences && cardContent.practice_sentences.length > 0) {
-                              const firstSentence = cardContent.practice_sentences[0];
-                              setPracticeSentence({
-                                practice_sentence_id: firstSentence.id,
-                                ja: firstSentence.ja,
-                                ja_annotated: firstSentence.ja_annotated ?? undefined,
-                                id: firstSentence.id_translation ?? undefined,
-                                en: firstSentence.en_translation ?? undefined,
-                                explanation: firstSentence.explanation ?? undefined,
-                              });
-                              setCurrentPracticeSentenceIndex(0);
-                            } else {
-                              setPracticeSentence({
-                                ja: cardContent.example_sentence_ja || '',
-                                en: cardContent.example_sentence_en ?? undefined,
-                                id: cardContent.example_sentence_id ?? undefined
-                              });
-                              setCurrentPracticeSentenceIndex(-1);
-                            }
-                          }
-                          setTimeout(() => practiceInputRef.current?.focus(), 300);
-                        }}
+                        onClick={() => router.push('/practice/' + cardContent.id)}
                         className="flex-1 py-2 text-sm text-teal-600 dark:text-teal-400 font-medium bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/40 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <BookOpenIcon className="w-4 h-4" />
@@ -1808,28 +1510,6 @@ export default function ReviewPage() {
         onConfirm={confirmMarkAsMastered}
         onCancel={() => setShowMasterConfirm(false)}
         variant="info"
-      />
-
-      {/* Practice Modal */}
-      <PracticeModal
-        isOpen={practiceMode}
-        onClose={() => setPracticeMode(false)}
-        practiceSentence={practiceSentence}
-        showFurigana={showFurigana}
-        showTranslation={showTranslation}
-        onToggleFurigana={handleToggleFurigana}
-        onToggleTranslation={handleToggleTranslation}
-        generatingFurigana={generatingFurigana}
-        generatingTranslation={generatingTranslation}
-        onGenerateNew={generatePracticeSentence}
-        generatingSentence={generatingSentence}
-        practiceInput={practiceInput}
-        onInputChange={setPracticeInput}
-        onCheck={handlePracticeCheck}
-        practiceFeedback={practiceFeedback}
-        practiceInputRef={practiceInputRef}
-        currentIndex={currentPracticeSentenceIndex}
-        totalSentences={currentCard?.practice_sentences?.length || 0}
       />
 
       <SmartDictionaryFAB />
