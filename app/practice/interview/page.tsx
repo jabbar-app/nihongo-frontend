@@ -36,7 +36,7 @@ interface PracticeSession {
   context: string | null;
   reading_id: number | null;
   title: string | null;
-  started_at: string | null;
+  started_at: string;
   ended_at: string | null;
 }
 
@@ -65,9 +65,9 @@ export default function InterviewPracticePage() {
   const [showFurigana, setShowFurigana] = useState(true);
 
   const parseFurigana = (text: string) => {
-    const parts = text.split(/(\{.+?\|.+?\})/g);
+    const parts = text.split(/([\{｛]\s*[^|｜}｝]+?\s*[|｜]\s*[^}｝]+?\s*[\}｝])/g);
     return parts.map((part, index) => {
-      const match = part.match(/\{(.+?)\|(.+?)\}/);
+      const match = part.match(/[\{｛]\s*([^|｜}｝]+?)\s*[|｜]\s*([^}｝]+?)\s*[\}｝]/);
       if (match) {
         return (
           <ruby key={index} className="mx-0.5">
