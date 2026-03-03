@@ -116,8 +116,8 @@ export default function PracticeConversation({
     // Helper to parse {Kanji|Reading} format to HTML
     const parseFurigana = (text: string) => {
         if (!text) return '';
-        // Replace {Kanji|Reading} with <ruby>Kanji<rt>Reading</rt></ruby>
-        return text.replace(/\{([^|]+)\|([^}]+)\}/g, '<ruby>$1<rt>$2</rt></ruby>');
+        // Replace {Kanji|Reading} or { Kanji | Reading } or ｛漢字｜かんじ｝ with <ruby>Kanji<rt>Reading</rt></ruby>
+        return text.replace(/[\{｛]\s*([^|｜}｝]+?)\s*[|｜]\s*([^}｝]+?)\s*[\}｝]/g, '<ruby>$1<rt>$2</rt></ruby>');
     };
 
     const handleSendMessage = async () => {
