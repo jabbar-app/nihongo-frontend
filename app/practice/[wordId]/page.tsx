@@ -44,6 +44,7 @@ export default function PracticePage() {
   const [showEnTranslation, setShowEnTranslation] = useState(false);
   const [generatingSentence, setGeneratingSentence] = useState(false);
   const [generatingTranslation, setGeneratingTranslation] = useState(false);
+  const [generatingFurigana, setGeneratingFurigana] = useState(false);
   const practiceInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -171,6 +172,36 @@ export default function PracticePage() {
     }
   };
 
+  const handleRegenerateFurigana = async () => {
+    if (!practiceSentence || !practiceSentence.practice_sentence_id) return;
+    setGeneratingFurigana(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const res = await fetch(`${apiUrl}/api/v1/practice-sentences/${practiceSentence.practice_sentence_id}/furigana?force=true`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPracticeSentence(prev => prev ? ({
+          ...prev,
+          ja_annotated: data.ja_annotated,
+        }) : null);
+        setShowFurigana(true);
+      }
+    } catch (error) {
+      console.error('Error regenerating furigana:', error);
+    } finally {
+      setGeneratingFurigana(false);
+    }
+  };
+
   const kanaMatchesCard = (input: string, c: CardContent): boolean => {
     const normalize = (text: string) => text.toLowerCase().replace(/[\s\-\.\(\)]/g, '');
     const nInput = normalize(input);
@@ -282,7 +313,15 @@ export default function PracticePage() {
             ) : practiceSentence && practiceSentence.ja ? (
               <div className="space-y-6">
                 {/* Japanese Text Box */}
-                <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/50 rounded-2xl p-6 sm:p-10 border-l-4 border-teal-500 shadow-sm">
+                <div className="relative group bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/50 rounded-2xl p-6 sm:p-10 border-l-4 border-teal-500 shadow-sm">
+                  <button
+                    onClick={handleRegenerateFurigana}
+                    disabled={generatingFurigana || !practiceSentence.practice_sentence_id}
+                    className={`absolute top-2 right-2 p-2 rounded-md transition-all cursor-pointer ${generatingFurigana ? 'opacity-100 text-teal-500' : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/30'}`}
+                    title="Regenerate Furigana"
+                  >
+                    <RotateCcwIcon className={`w-4 h-4 ${generatingFurigana ? 'animate-spin' : ''}`} />
+                  </button>
                   <div className="text-xl sm:text-2xl md:text-3xl text-gray-800 dark:text-gray-200 font-serif leading-relaxed break-words [&_rt]:text-sm [&_rt]:text-gray-500 [&_rt]:font-sans">
                     {showFurigana && practiceSentence.ja_annotated ? (
                       <span dangerouslySetInnerHTML={{ __html: practiceSentence.ja_annotated }} />
