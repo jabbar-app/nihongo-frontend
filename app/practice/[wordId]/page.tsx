@@ -314,14 +314,16 @@ export default function PracticePage() {
               <div className="space-y-6">
                 {/* Japanese Text Box */}
                 <div className="relative group bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/50 rounded-2xl p-6 sm:p-10 border-l-4 border-teal-500 shadow-sm">
-                  <button
-                    onClick={handleRegenerateFurigana}
-                    disabled={generatingFurigana || !practiceSentence.practice_sentence_id}
-                    className={`absolute top-2 right-2 p-2 rounded-md transition-all cursor-pointer ${generatingFurigana ? 'opacity-100 text-teal-500' : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/30'}`}
-                    title="Regenerate Furigana"
-                  >
-                    <RotateCcwIcon className={`w-4 h-4 ${generatingFurigana ? 'animate-spin' : ''}`} />
-                  </button>
+                  {showFurigana && (
+                    <button
+                      onClick={handleRegenerateFurigana}
+                      disabled={generatingFurigana || !practiceSentence.practice_sentence_id}
+                      className={`absolute top-2 right-2 p-2 rounded-md transition-all cursor-pointer ${generatingFurigana ? 'opacity-100 text-teal-500' : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/30'}`}
+                      title="Regenerate Furigana"
+                    >
+                      <RotateCcwIcon className={`w-4 h-4 ${generatingFurigana ? 'animate-spin' : ''}`} />
+                    </button>
+                  )}
                   <div className="text-xl sm:text-2xl md:text-3xl text-gray-800 dark:text-gray-200 font-serif leading-relaxed break-words [&_rt]:text-sm [&_rt]:text-gray-500 [&_rt]:font-sans">
                     {showFurigana && practiceSentence.ja_annotated ? (
                       <span dangerouslySetInnerHTML={{ __html: practiceSentence.ja_annotated }} />
