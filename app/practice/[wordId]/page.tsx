@@ -239,6 +239,12 @@ export default function PracticePage() {
     const isCorrect = kanaMatchesCard(trimmed, card) || meaningMatchesCard(trimmed, card) || sentenceMatches(trimmed, practiceSentence);
 
     setPracticeFeedback(isCorrect ? 'correct' : 'incorrect');
+
+    if (isCorrect) {
+      setTimeout(() => {
+        generatePracticeSentence(card);
+      }, 1500);
+    }
   };
 
   if (loading) {
