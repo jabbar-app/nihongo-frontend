@@ -230,15 +230,6 @@ export default function PracticePage() {
     if (!nInput) return false;
     if (nInput === normalize(sentence.ja)) return true;
     if (sentence.en && nInput === normalize(sentence.en)) return true;
-
-    // Add WanaKana check using pure import dynamically to avoid Next.js ssr issues
-    try {
-      const wanakana = require('wanakana');
-      if (nInput === normalize(wanakana.toHiragana(sentence.ja))) return true;
-    } catch (e) {
-      console.error(e);
-    }
-
     return false;
   };
 
