@@ -223,10 +223,20 @@ export default function PracticePage() {
     return checkMeanings(c.meaning_id) || checkMeanings(c.meaning_en);
   };
 
+  const sentenceMatches = (input: string, sentence: PracticeSentence | null): boolean => {
+    if (!sentence) return false;
+    const normalize = (text: string) => text.toLowerCase().replace(/[\s\-\.\(\)、「」。？\?]/g, '');
+    const nInput = normalize(input);
+    if (!nInput) return false;
+    if (nInput === normalize(sentence.ja)) return true;
+    if (sentence.en && nInput === normalize(sentence.en)) return true;
+    return false;
+  };
+
   const handleCheck = () => {
     if (!practiceInput.trim() || !card) return;
     const trimmed = practiceInput.trim();
-    const isCorrect = kanaMatchesCard(trimmed, card) || meaningMatchesCard(trimmed, card);
+    const isCorrect = kanaMatchesCard(trimmed, card) || meaningMatchesCard(trimmed, card) || sentenceMatches(trimmed, practiceSentence);
 
     setPracticeFeedback(isCorrect ? 'correct' : 'incorrect');
   };
@@ -409,7 +419,7 @@ export default function PracticePage() {
           {practiceSentence && practiceSentence.ja && (
             <div className="space-y-3 pt-6">
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                Target word: <span className="text-teal-600 font-bold">{card.kana}</span> - Type its reading to check:
+                Target word: <span className="text-teal-600 font-bold">{card.kana}</span> - Type its reading, meaning, or the sentence to check:
               </label>
               <div className="relative">
                 <Input
