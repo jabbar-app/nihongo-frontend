@@ -203,12 +203,27 @@ export default function PracticePage() {
   };
 
   const kanaMatchesCard = (input: string, c: CardContent): boolean => {
-    const normalize = (text: string) => text.toLowerCase().replace(/[\s\-\.\(\)]/g, '');
+    const normalize = (text: string) => text.toLowerCase().replace(/[\s\-\.]/g, '');
+    const stripOkurigana = (text: string) => text.replace(/\([^)]+\)/g, ''); // Removes content within parentheses
+    const removeParens = (text: string) => text.replace(/[\(\)]/g, ''); // Removes just the parentheses but keeps content
+
     const nInput = normalize(input);
     if (!nInput) return false;
-    if (nInput === normalize(c.kana)) return true;
-    const candidates = c.kana.split(/[,、/・]/).map(normalize).filter(s => s.length > 0);
-    return candidates.includes(nInput);
+
+    // Split kana field into variants by separator
+    const rawCandidates = c.kana.split(/[,、/・]/).map(normalize).filter(s => s.length > 0);
+
+    // Build a comprehensive list of acceptable candidates
+    let allCandidates = new Set<string>();
+
+    rawCandidates.forEach(cand => {
+      allCandidates.add(removeParens(cand)); // E.g., 'かた(る)' -> 'かたる'
+      if (cand.includes('(')) {
+        allCandidates.add(stripOkurigana(cand)); // E.g., 'かた(る)' -> 'かた'
+      }
+    });
+
+    return allCandidates.has(nInput);
   };
 
   const meaningMatchesCard = (input: string, c: CardContent): boolean => {
