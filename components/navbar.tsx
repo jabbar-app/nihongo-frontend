@@ -2,7 +2,7 @@
 
 import { links } from "@/data/links";
 import { ILink } from "@/types";
-import { MenuIcon, XIcon, HomeIcon, BookOpenIcon, LibraryIcon, UserIcon, LogOutIcon, SettingsIcon, CalendarIcon, ChevronDownIcon, FileTextIcon, PanelTopCloseIcon, PanelTopOpenIcon, Maximize2Icon, Minimize2Icon } from "lucide-react";
+import { MenuIcon, XIcon, HomeIcon, BookOpenIcon, LibraryIcon, UserIcon, LogOutIcon, SettingsIcon, CalendarIcon, ChevronDownIcon, FileTextIcon, PanelTopCloseIcon, PanelTopOpenIcon, Maximize2Icon, Minimize2Icon, CheckCircle2Icon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -140,6 +140,7 @@ export default function Navbar() {
     { icon: LibraryIcon, label: 'Decks', path: '/decks' },
     { icon: FileTextIcon, label: 'Materials', path: '/materials' },
     { icon: CalendarIcon, label: 'History', path: '/history' },
+    { icon: CheckCircle2Icon, label: 'テスト', path: '/test' },
   ];
 
   if (headerContent) {
@@ -218,6 +219,15 @@ export default function Navbar() {
                     }`}
                 >
                   Practice
+                </Link>
+                <Link
+                  href="/test"
+                  className={`px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/test')
+                    ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    }`}
+                >
+                  テスト
                 </Link>
               </>
             )}

@@ -298,7 +298,7 @@ export default function InterviewPracticePage() {
   if (memorizeMode && selectedReading) {
     return (
       <div className="min-h-full bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
-        <div className="max-w-3xl mx-auto space-y-6">
+        <div className="max-w-4xl mx-auto space-y-6">
           <div className="flex items-center gap-4">
             <Button variant="secondary" onClick={() => setMemorizeMode(false)} className="rounded-full w-10 h-10 p-0 flex items-center justify-center">
               <ArrowLeftIcon className="w-5 h-5" />

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { HomeIcon, MessageSquareIcon, UserIcon, FileTextIcon, RotateCcwIcon } from 'lucide-react';
+import { HomeIcon, MessageSquareIcon, UserIcon, FileTextIcon, RotateCcwIcon, CheckCircle2Icon } from 'lucide-react';
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -71,6 +71,16 @@ export default function BottomNav() {
         >
           <MessageSquareIcon className={`w-6 h-6 ${isActive('/practice') ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400'}`} />
           <span className={`text-xs font-medium ${isActive('/practice') ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400'}`}>Practice</span>
+        </Link>
+        <Link
+          href="/test"
+          className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${isActive('/test')
+            ? 'text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20'
+            : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+            }`}
+        >
+          <CheckCircle2Icon className={`w-6 h-6 ${isActive('/test') ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400'}`} />
+          <span className={`text-xs font-medium ${isActive('/test') ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400'}`}>テスト</span>
         </Link>
         <Link
           href="/profile"

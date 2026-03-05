@@ -571,6 +571,24 @@ export default function PracticePage() {
                 </div>
               </Card>
 
+              {/* Can-do Checklist Option */}
+              <Card
+                className={`p-4 mb-4 cursor-pointer hover:shadow-md transition-shadow dark:bg-gray-800 dark:border dark:border-gray-600 ${startingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => !startingSession && router.push('/practice/can-do')}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-yellow-600 dark:text-yellow-400"><polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-gray-900 dark:text-white">Can-do Checklist</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Evaluate your progress checking your Can-do targets
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
               {/* Particle Practice Option */}
               <Card
                 className={`p-4 mb-4 cursor-pointer hover:shadow-md transition-shadow dark:bg-gray-800 dark:border dark:border-gray-600 ${startingSession ? 'opacity-50 cursor-not-allowed' : ''}`}

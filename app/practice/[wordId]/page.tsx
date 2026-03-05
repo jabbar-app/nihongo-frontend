@@ -308,7 +308,7 @@ export default function PracticePage() {
 
       {/* Scrollable Body area */}
       <div className="flex-1 overflow-y-auto w-full p-4 sm:p-6">
-        <div className="max-w-3xl mx-auto w-full pb-32 space-y-8">
+        <div className="max-w-4xl mx-auto w-full pb-32 space-y-8">
 
           {/* Toggles */}
           <div className="flex items-center gap-2 justify-center flex-wrap pt-4">
