@@ -422,16 +422,51 @@ export default function PracticePage() {
                               <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                                 <ReactMarkdown
                                   components={{
-                                    h1: ({ children }) => <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mt-4 mb-2">{children}</h3>,
-                                    h2: ({ children }) => <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200 mt-3 mb-2">{children}</h4>,
-                                    h3: ({ children }) => <h5 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-3 mb-1.5">{children}</h5>,
-                                    p: ({ children }) => <p className="text-sm leading-relaxed mb-2 text-gray-700 dark:text-gray-300">{children}</p>,
-                                    ul: ({ children }) => <ul className="text-sm pl-5 mb-2 list-disc space-y-1 text-gray-700 dark:text-gray-300">{children}</ul>,
-                                    ol: ({ children }) => <ol className="text-sm pl-5 mb-2 list-decimal space-y-1 text-gray-700 dark:text-gray-300">{children}</ol>,
-                                    li: ({ children }) => <li className="mb-1">{children}</li>,
-                                    strong: ({ children }) => <strong className="font-semibold text-gray-900 dark:text-gray-100">{children}</strong>,
-                                    hr: () => <hr className="my-3 border-gray-200 dark:border-gray-700" />,
-                                    code: ({ children }) => <code className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-teal-700 dark:text-teal-400 text-xs font-mono">{children}</code>,
+                                    h1: ({ children }) => (
+                                      <div className="flex items-center gap-2 mt-5 mb-3 pb-2 border-b border-indigo-200 dark:border-indigo-800/50">
+                                        <span className="w-1 h-5 rounded-full bg-indigo-500"></span>
+                                        <h3 className="text-base font-bold text-indigo-700 dark:text-indigo-400">{children}</h3>
+                                      </div>
+                                    ),
+                                    h2: ({ children }) => (
+                                      <div className="flex items-center gap-2 mt-4 mb-2">
+                                        <span className="w-1 h-4 rounded-full bg-teal-500"></span>
+                                        <h4 className="text-sm font-bold text-teal-700 dark:text-teal-400">{children}</h4>
+                                      </div>
+                                    ),
+                                    h3: ({ children }) => (
+                                      <div className="flex items-center gap-2 mt-3 mb-1.5">
+                                        <span className="w-1 h-3.5 rounded-full bg-amber-500"></span>
+                                        <h5 className="text-sm font-semibold text-amber-700 dark:text-amber-400">{children}</h5>
+                                      </div>
+                                    ),
+                                    p: ({ children }) => (
+                                      <p className="text-sm leading-relaxed mb-2.5 text-gray-700 dark:text-gray-300">{children}</p>
+                                    ),
+                                    ul: ({ children }) => (
+                                      <ul className="text-sm pl-1 mb-3 space-y-1.5 text-gray-700 dark:text-gray-300 [&>li]:relative [&>li]:pl-4 [&>li]:before:content-[''] [&>li]:before:absolute [&>li]:before:left-0 [&>li]:before:top-[0.55em] [&>li]:before:w-1.5 [&>li]:before:h-1.5 [&>li]:before:rounded-full [&>li]:before:bg-teal-400 [&>li]:before:dark:bg-teal-600">{children}</ul>
+                                    ),
+                                    ol: ({ children }) => (
+                                      <ol className="text-sm pl-5 mb-3 list-decimal space-y-1.5 text-gray-700 dark:text-gray-300 marker:text-indigo-500 marker:font-bold">{children}</ol>
+                                    ),
+                                    li: ({ children }) => (
+                                      <li className="mb-1 leading-relaxed">{children}</li>
+                                    ),
+                                    strong: ({ children }) => (
+                                      <strong className="font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/20 px-1 py-0.5 rounded">{children}</strong>
+                                    ),
+                                    em: ({ children }) => (
+                                      <em className="text-amber-700 dark:text-amber-400 not-italic font-medium">{children}</em>
+                                    ),
+                                    hr: () => (
+                                      <hr className="my-4 border-none h-px bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-600 to-transparent" />
+                                    ),
+                                    code: ({ children }) => (
+                                      <code className="px-1.5 py-0.5 rounded-md bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 text-xs font-mono border border-teal-200 dark:border-teal-800/50">{children}</code>
+                                    ),
+                                    blockquote: ({ children }) => (
+                                      <blockquote className="my-3 pl-4 py-2 pr-3 border-l-3 border-amber-400 bg-amber-50 dark:bg-amber-900/10 rounded-r-lg text-amber-800 dark:text-amber-300 text-sm italic">{children}</blockquote>
+                                    ),
                                   }}
                                 >
                                   {practiceSentence.explanation}
