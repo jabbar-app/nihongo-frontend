@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeftIcon, RotateCcwIcon, LanguagesIcon, EyeIcon, EyeOffIcon, SendIcon, LoaderIcon } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import Button from '@/components/ui/button';
 import Input from '@/components/ui/input';
 import SmartDictionaryFAB from '@/components/smart-dictionary-fab';
@@ -417,9 +418,24 @@ export default function PracticePage() {
                           )}
                           {practiceSentence.explanation && (
                             <div className="border-t border-gray-100 dark:border-gray-700/50 pt-4 mt-3">
-                              <h5 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Explanation</h5>
-                              <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                                {practiceSentence.explanation}
+                              <h5 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">Explanation</h5>
+                              <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                                <ReactMarkdown
+                                  components={{
+                                    h1: ({ children }) => <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mt-4 mb-2">{children}</h3>,
+                                    h2: ({ children }) => <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200 mt-3 mb-2">{children}</h4>,
+                                    h3: ({ children }) => <h5 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-3 mb-1.5">{children}</h5>,
+                                    p: ({ children }) => <p className="text-sm leading-relaxed mb-2 text-gray-700 dark:text-gray-300">{children}</p>,
+                                    ul: ({ children }) => <ul className="text-sm pl-5 mb-2 list-disc space-y-1 text-gray-700 dark:text-gray-300">{children}</ul>,
+                                    ol: ({ children }) => <ol className="text-sm pl-5 mb-2 list-decimal space-y-1 text-gray-700 dark:text-gray-300">{children}</ol>,
+                                    li: ({ children }) => <li className="mb-1">{children}</li>,
+                                    strong: ({ children }) => <strong className="font-semibold text-gray-900 dark:text-gray-100">{children}</strong>,
+                                    hr: () => <hr className="my-3 border-gray-200 dark:border-gray-700" />,
+                                    code: ({ children }) => <code className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-teal-700 dark:text-teal-400 text-xs font-mono">{children}</code>,
+                                  }}
+                                >
+                                  {practiceSentence.explanation}
+                                </ReactMarkdown>
                               </div>
                             </div>
                           )}
