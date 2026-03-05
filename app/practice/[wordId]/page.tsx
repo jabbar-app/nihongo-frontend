@@ -332,7 +332,7 @@ export default function PracticePage() {
                 }`}
             >
               {showTranslation ? <EyeIcon className="w-4 h-4" /> : <EyeOffIcon className="w-4 h-4" />}
-              <span>Translation</span>
+              <span>Terjemahan</span>
             </button>
           </div>
 
