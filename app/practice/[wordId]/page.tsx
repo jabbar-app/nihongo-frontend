@@ -418,7 +418,7 @@ export default function PracticePage() {
                           )}
                           {practiceSentence.explanation && (
                             <div className="border-t border-gray-100 dark:border-gray-700/50 pt-4 mt-3">
-                              <h5 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">Explanation</h5>
+                              <h5 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">Penjelasan</h5>
                               <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                                 <ReactMarkdown
                                   components={{
