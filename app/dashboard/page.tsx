@@ -259,7 +259,12 @@ export default function DashboardPage() {
   };
 
   const { streakDays, recentDays } = calculateStreak();
-  const rankLevel = data.rank === 'Novice' ? 1 : data.rank === 'Beginner' ? 2 : data.rank === 'Intermediate' ? 3 : data.rank === 'Advanced' ? 4 : data.rank === 'Expert' ? 5 : 6;
+  const rankLevels: Record<string, number> = {
+    'Beginner I': 1, 'Beginner II': 2, 'Elementary': 3,
+    'Pre-Intermediate': 4, 'Intermediate': 5, 'Upper-Intermediate': 6,
+    'Advanced': 7, 'Expert': 8, 'Master': 9, 'Sage': 10,
+  };
+  const rankLevel = rankLevels[data.rank] ?? 1;
 
   // Get icon and color for deck based on level or type
   const getDeckIcon = (deck: Deck) => {
