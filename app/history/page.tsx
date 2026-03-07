@@ -228,7 +228,7 @@ export default function HistoryPage() {
                       <div className="flex-1">
                         <div className="text-sm font-medium text-gray-900 dark:text-white">{day.label}</div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
-                          {day.reviews} reviews • {formatTime(day.focusMinutes)} focus
+                          {day.reviews} reviews • {formatTime(day.focusMinutes)} time
                           {day.accuracy !== null && ` • ${day.accuracy}% accuracy`}
                         </div>
                       </div>

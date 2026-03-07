@@ -551,7 +551,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <div className="text-white font-medium text-sm">Daily Reviews</div>
-                    <div className="text-white/80 text-xs">{data.reviewedToday} reviews • {data.timeSpentToday} min</div>
+                    <div className="text-white/80 text-xs">{data.reviewedToday} reviews • {formatTime(data.timeSpentToday)} time</div>
                   </div>
                 </div>
                 <button
