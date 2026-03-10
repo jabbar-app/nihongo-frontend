@@ -361,14 +361,11 @@ export default function PracticePage() {
 
       const data = await response.json();
 
-      // Ensure messages array includes the initial message
       const sessionData = {
         ...data.session,
         messages: data.session.messages || (data.initial_message ? [data.initial_message] : []),
       };
-      setSession(sessionData);
-      setShowReadingSelector(false);
-      setSelectedReading(reading);
+      router.push(`/conversation/${sessionData.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start session');
     } finally {
@@ -779,19 +776,6 @@ export default function PracticePage() {
           </div>
         )}
 
-        {session && (
-          <PracticeConversation
-            session={session}
-            onSendMessage={sendMessage}
-            onEndSession={endSession}
-            onGetClue={getClue}
-            sending={sending}
-            ending={ending}
-            clue={clue}
-            loadingClue={loadingClue}
-            setClue={setClue}
-          />
-        )}
       </div>
     </main>
   );

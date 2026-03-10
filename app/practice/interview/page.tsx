@@ -215,9 +215,7 @@ export default function InterviewPracticePage() {
       const res = await api.post('/api/v1/practice/sessions/start', {
         reading_id: reading.id
       });
-      setSession(res.session);
-      setSelectedReading(reading);
-      setMemorizeMode(false);
+      router.push(`/conversation/${res.session.id}`);
     } catch (err) {
       console.error(err);
       toast.error('Failed to start session');
@@ -277,24 +275,6 @@ export default function InterviewPracticePage() {
 
 
   // Views
-  if (session) {
-    return (
-      <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900">
-        <PracticeConversation
-          session={session}
-          onSendMessage={sendMessage}
-          onEndSession={endSession}
-          onGetClue={getClue}
-          sending={sending}
-          ending={ending}
-          clue={clue}
-          loadingClue={loadingClue}
-          setClue={setClue}
-        />
-      </div>
-    );
-  }
-
   if (memorizeMode && selectedReading) {
     return (
       <div className="min-h-full bg-gray-50 dark:bg-gray-900 p-4 md:p-8">

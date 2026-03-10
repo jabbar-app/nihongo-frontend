@@ -280,6 +280,19 @@ export default function PracticePage() {
     }
   };
 
+  const handleCheckAndShowTranslation = () => {
+    if (!practiceInput.trim() || !card) return;
+    const trimmed = practiceInput.trim();
+    const isCorrect = kanaMatchesCard(trimmed, card) || meaningMatchesCard(trimmed, card) || sentenceMatches(trimmed, practiceSentence);
+
+    setPracticeFeedback(isCorrect ? 'correct' : 'incorrect');
+
+    setShowTranslation(true);
+    if (practiceSentence?.practice_sentence_id && !practiceSentence.en) {
+      handleRegenerateTranslation();
+    }
+  };
+
   const handleCheckAndFinish = () => {
     if (!practiceInput.trim() || !card) return;
     const trimmed = practiceInput.trim();
@@ -404,15 +417,24 @@ export default function PracticePage() {
                   {(showFurigana || showTranslation) && (
                     <div className="absolute top-4 right-4 flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
                       {showFurigana && (
-                        <button
-                          onClick={handleRegenerateFurigana}
-                          disabled={generatingFurigana || !practiceSentence.practice_sentence_id}
-                          className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800/40 hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors cursor-pointer disabled:opacity-50 shadow-sm"
-                          title="Regenerate Furigana"
-                        >
-                          <RefreshCwIcon className={`w-3.5 h-3.5 ${generatingFurigana ? 'animate-spin' : ''}`} />
-                          Update
-                        </button>
+                        <>
+                          <button
+                            onClick={handleRegenerateFurigana}
+                            disabled={generatingFurigana || !practiceSentence.practice_sentence_id}
+                            className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800/40 hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors cursor-pointer disabled:opacity-50 shadow-sm"
+                            title="Update Furigana"
+                          >
+                            <RefreshCwIcon className={`w-3.5 h-3.5 ${generatingFurigana ? 'animate-spin' : ''}`} />
+                            Update
+                          </button>
+                          <button
+                            onClick={() => setShowFurigana(false)}
+                            className="flex items-center justify-center px-2 py-1.5 text-xs font-bold rounded-lg bg-gray-100 dark:bg-gray-800/80 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm"
+                            title="Hide Furigana"
+                          >
+                            <EyeOffIcon className="w-3.5 h-3.5" />
+                          </button>
+                        </>
                       )}
                     </div>
                   )}
@@ -446,7 +468,13 @@ export default function PracticePage() {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
-                        handleCheck();
+                        if (e.ctrlKey || e.metaKey) {
+                          handleCheckAndFinish();
+                        } else if (e.altKey) {
+                          handleCheckAndShowTranslation();
+                        } else {
+                          handleCheck();
+                        }
                       }
                     }}
                     placeholder="Type the reading or meaning..."
@@ -463,14 +491,24 @@ export default function PracticePage() {
                     <Button
                       onClick={handleCheckAndFinish}
                       variant="outline"
-                      title="Submit & Finish"
+                      title="Submit & Finish (Ctrl + Enter)"
                       className="flex items-center justify-center px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all cursor-pointer"
                     >
                       <PowerIcon className="w-5 h-5" />
                     </Button>
 
                     <Button
+                      onClick={handleCheckAndShowTranslation}
+                      variant="outline"
+                      title="Submit & Show Translation (Alt + Enter)"
+                      className="flex items-center justify-center px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all cursor-pointer"
+                    >
+                      <LanguagesIcon className="w-5 h-5" />
+                    </Button>
+
+                    <Button
                       onClick={handleCheck}
+                      title="Next (Enter)"
                       className="flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white transition-all text-sm font-bold cursor-pointer"
                     >
                       <SendIcon className="w-4 h-4" />
@@ -530,17 +568,28 @@ export default function PracticePage() {
                     </button>
                   )}
                 </div>
-                {showTranslation && practiceSentence.practice_sentence_id && (
-                  <button
-                    onClick={handleRegenerateTranslation}
-                    disabled={generatingTranslation}
-                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/40 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors cursor-pointer disabled:opacity-50 shadow-sm"
-                    title="Regenerate Translation"
-                  >
-                    <RefreshCwIcon className={`w-3.5 h-3.5 ${generatingTranslation ? 'animate-spin' : ''}`} />
-                    Update
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  {showTranslation && practiceSentence.practice_sentence_id && (
+                    <button
+                      onClick={handleRegenerateTranslation}
+                      disabled={generatingTranslation}
+                      className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/40 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors cursor-pointer disabled:opacity-50 shadow-sm"
+                      title="Update Translation"
+                    >
+                      <RefreshCwIcon className={`w-3.5 h-3.5 ${generatingTranslation ? 'animate-spin' : ''}`} />
+                      Update
+                    </button>
+                  )}
+                  {showTranslation && (
+                    <button
+                      onClick={() => setShowTranslation(false)}
+                      className="flex items-center justify-center px-2 py-1.5 text-xs font-bold rounded-lg bg-gray-100 dark:bg-gray-800/80 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm"
+                      title="Hide Translation"
+                    >
+                      <EyeOffIcon className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-3 pt-1">
