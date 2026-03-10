@@ -416,7 +416,7 @@ export default function PracticePage() {
                       )}
                     </div>
                   )}
-                  <div className={`text-xl sm:text-2xl md:text-3xl text-black dark:text-white font-serif leading-relaxed break-words [&_rt]:text-sm [&_rt]:text-gray-200 dark:[&_rt]:text-gray-600 [&_rt]:font-sans text-center ${showFurigana ? 'mt-6' : ''}`}>
+                  <div className={`text-xl sm:text-2xl md:text-3xl text-black dark:text-white font-serif leading-relaxed break-words [&_rt]:text-sm [&_rt]:text-gray-400 dark:[&_rt]:text-gray-600 [&_rt]:font-sans text-center ${showFurigana ? 'mt-6' : ''}`}>
                     {showFurigana && practiceSentence.ja_annotated ? (
                       <span dangerouslySetInnerHTML={{ __html: practiceSentence.ja_annotated }} />
                     ) : (
