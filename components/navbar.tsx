@@ -2,7 +2,7 @@
 
 import { links } from "@/data/links";
 import { ILink } from "@/types";
-import { MenuIcon, XIcon, HomeIcon, BookOpenIcon, LibraryIcon, UserIcon, LogOutIcon, SettingsIcon, CalendarIcon, ChevronDownIcon, FileTextIcon, PanelTopCloseIcon, PanelTopOpenIcon, Maximize2Icon, Minimize2Icon, CheckCircle2Icon } from "lucide-react";
+import { MenuIcon, XIcon, HomeIcon, BookOpenIcon, LibraryIcon, UserIcon, LogOutIcon, SettingsIcon, CalendarIcon, ChevronDownIcon, FileTextIcon, PanelTopCloseIcon, PanelTopOpenIcon, Maximize2Icon, Minimize2Icon, CheckCircle2Icon, HistoryIcon, TrophyIcon, SparklesIcon, SearchIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -20,6 +20,7 @@ export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
   const pathname = usePathname();
 
@@ -158,7 +159,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className={`sticky top-0 z-50 w-full px-4 py-2 border-b transition-all duration-300 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${isScrolled ? 'shadow-md' : 'shadow-sm'}`}>
+      <nav className={`sticky top-0 ${isMenuOpen || isProfileDropdownOpen ? 'z-50' : 'z-20'} w-full px-4 py-2 border-b transition-all duration-300 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${isScrolled ? 'shadow-md' : 'shadow-sm'}`}>
         <div className="flex items-center justify-between">
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -168,78 +169,101 @@ export default function Navbar() {
           </button>
 
           {/* Desktop Navigation - Center */}
-          <div className="hidden md:flex items-center gap-1">
-            {!isLoggedIn && (
-              <Link
-                href="/"
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/')
-                  ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
-                  }`}
-              >
-                <HomeIcon className="w-5 h-5" />
-                <span>Home</span>
-              </Link>
-            )}
-            {isLoggedIn && (
-              <>
+          <div className="hidden md:flex flex-1 items-center justify-between mx-4">
+            <div className="flex items-center gap-1">
+              {!isLoggedIn && (
                 <Link
-                  href="/dashboard"
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/dashboard')
+                  href="/"
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/')
                     ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
                     }`}
                 >
                   <HomeIcon className="w-5 h-5" />
-                  <span>Dashboard</span>
+                  <span>Home</span>
                 </Link>
-                <Link
-                  href="/materials"
-                  className={`px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/materials')
-                    ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
-                    }`}
-                >
-                  Learn
-                </Link>
-                <Link
-                  href="/review"
-                  className={`px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/review')
-                    ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
-                    }`}
-                >
-                  Review
-                </Link>
-                <Link
-                  href="/practice"
-                  className={`px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/practice')
-                    ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
-                    }`}
-                >
-                  Practice
-                </Link>
-                <Link
-                  href="/test"
-                  className={`px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/test')
-                    ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
-                    }`}
-                >
-                  テスト
-                </Link>
-              </>
-            )}
-            <Link
-              href="/about"
-              className={`px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/about')
-                ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
-                }`}
+              )}
+              {isLoggedIn && (
+                <>
+                  <Link
+                    href="/dashboard"
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/dashboard')
+                      ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      }`}
+                  >
+                    <HomeIcon className="w-5 h-5" />
+                    <span>Dashboard</span>
+                  </Link>
+                  <Link
+                    href="/materials"
+                    className={`px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/materials')
+                      ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      }`}
+                  >
+                    Learn
+                  </Link>
+                  <Link
+                    href="/review"
+                    className={`px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/review')
+                      ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      }`}
+                  >
+                    Review
+                  </Link>
+                  <Link
+                    href="/practice"
+                    className={`px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/practice')
+                      ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      }`}
+                  >
+                    Practice
+                  </Link>
+                  <Link
+                    href="/test"
+                    className={`px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/test')
+                      ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      }`}
+                  >
+                    テスト
+                  </Link>
+                </>
+              )}
+              <Link
+                href="/about"
+                className={`px-3 py-2 rounded-lg transition-colors cursor-pointer ${isActive('/about')
+                  ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                  }`}
+              >
+                About
+              </Link>
+            </div>
+
+            {/* Search */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (searchQuery.trim()) {
+                  router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+                  setSearchQuery('');
+                }
+              }}
+              className="relative"
             >
-              About
-            </Link>
+              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="検索... Search"
+                className="w-48 focus:w-64 pl-9 pr-3 py-1.5 text-sm rounded-lg bg-gray-100 dark:bg-gray-700 border border-transparent focus:border-gray-300 dark:focus:border-gray-600 text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all duration-200"
+              />
+            </form>
           </div>
 
           <div className="flex items-center gap-2">
@@ -272,16 +296,20 @@ export default function Navbar() {
             )}
             <ThemeToggle className="cursor-pointer" />
 
-            {/* Desktop Profile Dropdown - Only when logged in */}
+            {/* Profile Dropdown - Only when logged in */}
             {isLoggedIn ? (
-              <div className="hidden md:block relative profile-dropdown-container">
+              <div className="relative profile-dropdown-container">
                 <button
                   onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer"
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold text-sm">
-                    {user?.name?.charAt(0) || 'U'}
-                  </div>
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt={user.name || 'User'} className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold text-sm">
+                      {user?.name?.charAt(0) || 'U'}
+                    </div>
+                  )}
                   <ChevronDownIcon className={`w-4 h-4 text-gray-600 dark:text-gray-300 transition-transform ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
@@ -290,46 +318,133 @@ export default function Navbar() {
                   <>
                     {/* Backdrop to close dropdown */}
                     <div
-                      className="fixed inset-0 z-40 cursor-pointer"
+                      className="fixed inset-0 z-30 cursor-pointer"
                       onClick={() => setIsProfileDropdownOpen(false)}
                     />
-                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
-                      <button
-                        onClick={() => {
-                          handleNavigation('/profile');
-                          setIsProfileDropdownOpen(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors rounded-t-lg cursor-pointer"
-                      >
-                        <UserIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                        <span className="text-gray-700 dark:text-gray-300">Profile</span>
-                      </button>
-                      <div className="border-t border-gray-200 dark:border-gray-700" />
-                      <button
-                        onClick={() => {
-                          handleLogout();
-                          setIsProfileDropdownOpen(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 dark:hover:bg-red-800/20 transition-colors text-red-600 dark:text-red-400 rounded-b-lg cursor-pointer"
-                      >
-                        <LogOutIcon className="w-5 h-5" />
-                        <span>Log out</span>
-                      </button>
+                    <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-30 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                      {/* User Info Header */}
+                      <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-3">
+                          {user?.avatar ? (
+                            <img src={user.avatar} alt={user.name || 'User'} className="w-10 h-10 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold text-sm">
+                              {user?.name?.charAt(0) || 'U'}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">{user?.name || 'User'}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">{user?.email || 'user@manabou.app'}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Menu Items */}
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            handleNavigation('/history');
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                        >
+                          <HistoryIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Practice History</span>
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500">れんしゅう きろく</span>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleNavigation('/history/mastered');
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                        >
+                          <TrophyIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Cards Mastered</span>
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500">マスターしたカード</span>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                        >
+                          <SparklesIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Subscription</span>
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500">サブスクリプション</span>
+                          </div>
+                          <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 font-bold uppercase tracking-wide">Soon</span>
+                        </button>
+                      </div>
+
+                      <div className="h-px bg-gray-200 dark:bg-gray-700 mx-3" />
+
+                      {/* Account */}
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            handleNavigation('/profile');
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                        >
+                          <UserIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Profile</span>
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500">プロフィール</span>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleNavigation('/settings');
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                        >
+                          <SettingsIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Settings</span>
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500">セッティング</span>
+                          </div>
+                        </button>
+                      </div>
+
+                      <div className="h-px bg-gray-200 dark:bg-gray-700 mx-3" />
+
+                      {/* Logout */}
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            handleLogout();
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors text-gray-500 dark:text-gray-400 cursor-pointer"
+                        >
+                          <LogOutIcon className="w-4 h-4" />
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium">Log out</span>
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500">ログアウト</span>
+                          </div>
+                        </button>
+                      </div>
                     </div>
                   </>
                 )}
               </div>
             ) : (
-              <div className="hidden md:block">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => router.push('/login')}
-                  className="cursor-pointer"
-                >
-                  Login
-                </Button>
-              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => router.push('/login')}
+                className="cursor-pointer"
+              >
+                Login
+              </Button>
             )}
           </div>
         </div>
@@ -345,7 +460,7 @@ export default function Navbar() {
 
       {/* Menu - Slide in from right, full screen on mobile, fit content on desktop */}
       <div
-        className={`fixed top-0 right-0 z-50 h-screen bg-white dark:bg-gray-900 shadow-xl transition-transform duration-300 ease-in-out ${isMenuOpen
+        className={`fixed top-0 right-0 z-55 h-screen bg-white dark:bg-gray-900 shadow-xl transition-transform duration-300 ease-in-out ${isMenuOpen
           ? "translate-x-0"
           : "translate-x-full"
           } w-full md:w-80`}

@@ -54,9 +54,8 @@ export default function MobileSidebar({ isOpen, onClose, user }: MobileSidebarPr
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-white dark:bg-gray-900 shadow-xl z-50 md:hidden transform transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed top-0 left-0 h-full w-64 bg-white dark:bg-gray-900 shadow-xl z-50 md:hidden transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
@@ -86,11 +85,10 @@ export default function MobileSidebar({ isOpen, onClose, user }: MobileSidebarPr
               <button
                 key={item.path}
                 onClick={() => handleNavigation(item.path)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors mb-2 ${
-                  active
-                    ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-                }`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors mb-2 ${active
+                  ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  }`}
               >
                 <Icon className={`w-5 h-5 ${active ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400'}`} />
                 <span className="font-medium">{item.label}</span>
@@ -104,11 +102,10 @@ export default function MobileSidebar({ isOpen, onClose, user }: MobileSidebarPr
           {/* Profile & Settings */}
           <button
             onClick={() => handleNavigation('/profile')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors mb-2 ${
-              isActive('/profile')
-                ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-            }`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors mb-2 ${isActive('/profile')
+              ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
+              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
           >
             <UserIcon className={`w-5 h-5 ${isActive('/profile') ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400'}`} />
             <span className="font-medium">Profile</span>
@@ -116,11 +113,10 @@ export default function MobileSidebar({ isOpen, onClose, user }: MobileSidebarPr
 
           <button
             onClick={() => handleNavigation('/settings')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors mb-2 ${
-              isActive('/settings')
-                ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-            }`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors mb-2 ${isActive('/settings')
+              ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
+              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
           >
             <SettingsIcon className={`w-5 h-5 ${isActive('/settings') ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400'}`} />
             <span className="font-medium">Settings</span>
