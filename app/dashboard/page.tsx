@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FlameIcon, PlayIcon, BookOpenIcon, GlobeIcon, BriefcaseIcon, UserIcon, ShoppingBagIcon, GraduationCapIcon, BookIcon, MenuIcon, InfoIcon, XIcon } from 'lucide-react';
+import { FlameIcon, PlayIcon, BookOpenIcon, GlobeIcon, BriefcaseIcon, UserIcon, ShoppingBagIcon, GraduationCapIcon, BookIcon, MenuIcon, InfoIcon, XIcon, StarIcon } from 'lucide-react';
 import MobileSidebar from '@/components/mobile-sidebar';
 import { useHeader } from '@/components/header-context';
 import ThemeToggle from '@/components/theme-toggle';
@@ -43,6 +43,7 @@ interface DashboardData {
     doneCount: number;
     pctGroup: number;
   }>;
+  decks?: Deck[];
 }
 
 interface Deck {
@@ -54,14 +55,14 @@ interface Deck {
   source: string | null;
   is_official: boolean;
   card_count: number;
+  mastered_count?: number;
+  is_favorite?: boolean;
 }
 
 export default function DashboardPage() {
   const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
-  const [decks, setDecks] = useState<Deck[]>([]);
   const [loading, setLoading] = useState(true);
-  const [decksLoading, setDecksLoading] = useState(true);
   const [error, setError] = useState('');
   const [user, setUser] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -132,17 +133,6 @@ export default function DashboardPage() {
       }
     };
 
-    const fetchDecks = async () => {
-      try {
-        const decksData = await api.get<{ data: Deck[] } | Deck[]>('/api/v1/decks?per_page=4');
-        setDecks(Array.isArray(decksData) ? decksData : decksData.data || []);
-      } catch {
-        // Failed to load decks
-      } finally {
-        setDecksLoading(false);
-      }
-    };
-
     const token = localStorage.getItem('auth_token');
     if (!token) {
       router.push('/login');
@@ -161,7 +151,6 @@ export default function DashboardPage() {
     }
 
     fetchDashboard();
-    fetchDecks();
 
     // Refetch dashboard when user returns to this page/tab so indicators stay in sync
     const onVisible = () => {
@@ -283,6 +272,22 @@ export default function DashboardPage() {
 
   const handleDeckClick = (deck: Deck) => {
     router.push(`/decks/${deck.slug}`);
+  };
+
+  const handleToggleFavorite = async (e: React.MouseEvent, deckId: number) => {
+    e.stopPropagation();
+    try {
+      const response = await api.post<{ is_favorite: boolean }>(`/api/v1/decks/${deckId}/favorite`, {});
+      setData((prev) => {
+        if (!prev) return prev;
+        const updatedDecks = prev.decks?.map((d) =>
+          d.id === deckId ? { ...d, is_favorite: response.is_favorite } : d
+        );
+        return { ...prev, decks: updatedDecks };
+      });
+    } catch (err) {
+      console.error('Failed to toggle favorite', err);
+    }
   };
 
   return (
@@ -577,8 +582,8 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {decksLoading ? (
-            <div className="grid grid-cols-2 gap-3">
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 shadow-sm animate-pulse">
                   <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg mb-2"></div>
@@ -587,25 +592,51 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-          ) : decks.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3">
-              {decks.slice(0, 4).map((deck) => {
+          ) : data.decks && data.decks.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {data.decks.map((deck) => {
                 const { Icon, bgColor, iconColor } = getDeckIcon(deck);
                 return (
-                  <button
+                  <div
                     key={deck.id}
                     onClick={() => handleDeckClick(deck)}
-                    className="bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow text-left cursor-pointer"
+                    className="group bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow text-left cursor-pointer flex flex-col relative"
                   >
+                    <button
+                      onClick={(e) => handleToggleFavorite(e, deck.id)}
+                      className={`absolute top-4 right-4 p-2 rounded-full cursor-pointer transition-colors ${deck.is_favorite ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30' : 'text-gray-300 dark:text-gray-600 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30'}`}
+                      aria-label="Toggle favorite"
+                    >
+                      <StarIcon className={`w-5 h-5 ${deck.is_favorite ? 'fill-current' : ''}`} />
+                    </button>
+
                     <div className={`w-10 h-10 ${bgColor} dark:opacity-80 rounded-lg flex items-center justify-center mb-2`}>
                       <Icon className={`w-5 h-5 ${iconColor}`} />
                     </div>
-                    <div className="font-semibold text-sm mb-1 text-gray-900 dark:text-white">{deck.name}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
+
+                    <div className="font-semibold text-sm mb-1 text-gray-900 dark:text-white pr-8">{deck.name}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-3">
                       {deck.card_count} {deck.card_count === 1 ? 'card' : 'cards'}
                       {deck.level && ` • ${deck.level}`}
                     </div>
-                  </button>
+
+                    <div className="mt-auto pt-2 border-t border-gray-100 dark:border-gray-700">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Mastery</span>
+                        <span className="text-xs font-semibold text-teal-600 dark:text-teal-400">
+                          {deck.mastered_count ?? 0} / {deck.card_count}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5">
+                        <div
+                          className="bg-teal-500 dark:bg-teal-400 h-1.5 rounded-full transition-all duration-300"
+                          style={{
+                            width: `${deck.card_count > 0 ? Math.min(100, (((deck.mastered_count ?? 0) / deck.card_count) * 100)) : 0}%`
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
             </div>

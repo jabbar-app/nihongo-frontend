@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { BookOpenIcon, GraduationCapIcon, BookIcon, LoaderIcon, LayersIcon, SparklesIcon, PlusIcon, MoreVerticalIcon, PencilIcon, TrashIcon } from 'lucide-react';
+import { BookOpenIcon, GraduationCapIcon, BookIcon, LoaderIcon, LayersIcon, SparklesIcon, PlusIcon, MoreVerticalIcon, PencilIcon, TrashIcon, StarIcon } from 'lucide-react';
 import { api } from '@/lib/api';
 import DeckFormModal from '@/components/deck-form-modal';
 import Button from '@/components/ui/button';
@@ -17,6 +17,7 @@ interface Deck {
   source: string | null;
   is_official: boolean;
   card_count: number;
+  is_favorite?: boolean;
 }
 
 interface GroupedDecks {
@@ -113,6 +114,19 @@ export default function DecksPage() {
       setDecks(prev => prev.map(d => d.id === deck.id ? deck : d));
     } else {
       setDecks(prev => [...prev, deck]);
+    }
+  };
+
+  const handleToggleFavorite = async (e: React.MouseEvent, deckId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      const response = await api.post<{ is_favorite: boolean }>(`/api/v1/decks/${deckId}/favorite`, {});
+      setDecks((prev) =>
+        prev.map((d) => (d.id === deckId ? { ...d, is_favorite: response.is_favorite } : d))
+      );
+    } catch (err) {
+      console.error('Failed to toggle favorite', err);
     }
   };
 
@@ -278,39 +292,49 @@ export default function DecksPage() {
                         </div>
                       </Link>
 
-                      {/* Action Menu */}
-                      {(!deck.is_official || currentUserEmail === 'jabbarpanggabean@gmail.com') && (
-                        <div className="absolute top-4 right-4 z-10">
-                          <button
-                            data-menu-trigger
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setActiveMenu(activeMenu === deck.id ? null : deck.id);
-                            }}
-                            className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                          >
-                            <MoreVerticalIcon className="w-5 h-5 pointer-events-none" />
-                          </button>
+                      {/* Action & Favorite Menu */}
+                      <div className="absolute top-4 right-4 z-10 flex items-center gap-1">
+                        <button
+                          onClick={(e) => handleToggleFavorite(e, deck.id)}
+                          className={`p-1.5 rounded-full cursor-pointer transition-colors ${deck.is_favorite ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30' : 'text-gray-300 dark:text-gray-600 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30'}`}
+                          aria-label="Toggle favorite"
+                        >
+                          <StarIcon className={`w-5 h-5 ${deck.is_favorite ? 'fill-current' : ''}`} />
+                        </button>
 
-                          {activeMenu === deck.id && (
-                            <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-100 dark:border-gray-700 py-1 z-50">
-                              <button
-                                onClick={(e) => handleEditClick(e, deck)}
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
-                              >
-                                <PencilIcon className="w-4 h-4" /> Edit
-                              </button>
-                              <button
-                                onClick={(e) => handleDeleteClick(e, deck)}
-                                className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
-                              >
-                                <TrashIcon className="w-4 h-4" /> Delete
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                        {(!deck.is_official || currentUserEmail === 'jabbarpanggabean@gmail.com') && (
+                          <div className="relative">
+                            <button
+                              data-menu-trigger
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setActiveMenu(activeMenu === deck.id ? null : deck.id);
+                              }}
+                              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors cursor-pointer"
+                            >
+                              <MoreVerticalIcon className="w-5 h-5 pointer-events-none" />
+                            </button>
+
+                            {activeMenu === deck.id && (
+                              <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-100 dark:border-gray-700 py-1 z-50">
+                                <button
+                                  onClick={(e) => handleEditClick(e, deck)}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+                                >
+                                  <PencilIcon className="w-4 h-4" /> Edit
+                                </button>
+                                <button
+                                  onClick={(e) => handleDeleteClick(e, deck)}
+                                  className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                                >
+                                  <TrashIcon className="w-4 h-4" /> Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

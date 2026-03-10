@@ -2,7 +2,7 @@
 
 import { links } from "@/data/links";
 import { ILink } from "@/types";
-import { MenuIcon, XIcon, HomeIcon, BookOpenIcon, LibraryIcon, UserIcon, LogOutIcon, SettingsIcon, CalendarIcon, ChevronDownIcon, FileTextIcon, PanelTopCloseIcon, PanelTopOpenIcon, Maximize2Icon, Minimize2Icon, CheckCircle2Icon, HistoryIcon, TrophyIcon, SparklesIcon, SearchIcon } from "lucide-react";
+import { MenuIcon, XIcon, HomeIcon, BookOpenIcon, LibraryIcon, UserIcon, LogOutIcon, SettingsIcon, CalendarIcon, ChevronDownIcon, FileTextIcon, PanelTopCloseIcon, PanelTopOpenIcon, Maximize2Icon, Minimize2Icon, CheckCircle2Icon, HistoryIcon, TrophyIcon, SparklesIcon, SearchIcon, BookIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -352,6 +352,20 @@ export default function Navbar() {
                           <div className="flex flex-col">
                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Practice History</span>
                             <span className="text-[10px] text-gray-400 dark:text-gray-500">れんしゅう きろく</span>
+                          </div>
+                        </button>
+                        {/* Decks menu */}
+                        <button
+                          onClick={() => {
+                            handleNavigation('/decks');
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                        >
+                          <BookIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Decks</span>
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500">デッキ</span>
                           </div>
                         </button>
                         <button
