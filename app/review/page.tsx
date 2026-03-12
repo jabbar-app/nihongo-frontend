@@ -97,9 +97,33 @@ export default function ReviewPage() {
   const [error, setError] = useState('');
   const [inputError, setInputError] = useState(''); // New state for input validation
   const [submitting, setSubmitting] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const [editingCard, setEditingCard] = useState<any>(null);
+
+  // --- New states for Flash Practice and End-of-Session Quiz ---
+  const [activeFlashPractice, setActiveFlashPractice] = useState<{
+    card: CardContent;
+    remainingModalities: ('reading' | 'meaning' | 'kanji')[];
+    currentModality: 'reading' | 'meaning' | 'kanji';
+  } | null>(null);
+  const [flashPracticeInput, setFlashPracticeInput] = useState('');
+  const [flashPracticeCorrect, setFlashPracticeCorrect] = useState<boolean | null>(null);
+  const [flashPracticeFeedback, setFlashPracticeFeedback] = useState(false);
+  const flashPracticeInputRef = useRef<HTMLInputElement>(null);
+
+  const [missedCardsForQuiz, setMissedCardsForQuiz] = useState<CardContent[]>([]);
+  const [showEndSessionQuiz, setShowEndSessionQuiz] = useState(false);
+  const [quizCurrentIndex, setQuizCurrentIndex] = useState(0);
+  const [quizQuestions, setQuizQuestions] = useState<{
+    card: CardContent;
+    options: string[];
+    answerIndex: number;
+    questionType: 'meaning' | 'reading';
+    selectedAnswer: number | null;
+    isCorrect: boolean | null;
+  }[]>([]);
+
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const kanaMatchesCard = (input: string, card: CardContent): boolean => {
     const normalize = (text: string) => text.toLowerCase().replace(/[\s\-\.\(\)]/g, '');
@@ -140,7 +164,102 @@ export default function ReviewPage() {
     setHintModalOpen(false);
   };
 
+  // --- Quiz Logic ---
+  const generateQuizQuestions = useCallback(() => {
+    if (!missedCardsForQuiz.length) return;
 
+    // We need distractors. We'll use the current queue, similarCards, or whatever we have.
+    // Ideally, we have a pool of all cards seen this session. 
+    // `sessionStats` doesn't store cards, so we just use `queue` (which might be empty now) 
+    // plus `missedCardsForQuiz` itself to cross-pollinate distractors.
+    const distractorPool = [...missedCardsForQuiz]; 
+    if (queue) {
+      distractorPool.push(...queue);
+    }
+
+    const questions = missedCardsForQuiz.map(card => {
+      // 50/50 chance for meaning or reading question, if reading is possible
+      const hasKanji = card.kanji && card.kanji.trim() !== '';
+      const questionType: 'meaning' | 'reading' = (hasKanji && Math.random() > 0.5) ? 'reading' : 'meaning';
+
+      let correctText = '';
+      if (questionType === 'meaning') {
+        correctText = card.meaning_id || card.meaning_en || '';
+      } else {
+        correctText = card.kana;
+      }
+
+      // Find 3 unique distractors
+      const distractors = new Set<string>();
+      
+      // Shuffle pool
+      const pool = [...distractorPool].sort(() => 0.5 - Math.random());
+      
+      for (const pCard of pool) {
+        if (distractors.size >= 3) break;
+        if (pCard.id === card.id) continue;
+
+        let dText = '';
+        if (questionType === 'meaning') {
+          dText = pCard.meaning_id || pCard.meaning_en || '';
+        } else {
+          dText = pCard.kana;
+        }
+
+        if (dText && dText !== correctText && !distractors.has(dText)) {
+          distractors.add(dText);
+        }
+      }
+
+      // If we couldn't find 3 real distractors (unlikely unless DB is tiny), pad with generics
+      while (distractors.size < 3) {
+        const dummy = `Distractor ${distractors.size + 1}`;
+        if (!distractors.has(dummy) && dummy !== correctText) {
+          distractors.add(dummy);
+        }
+      }
+
+      const options = [correctText, ...Array.from(distractors)];
+      // Shuffle options
+      options.sort(() => 0.5 - Math.random());
+      const answerIndex = options.indexOf(correctText);
+
+      return {
+        card,
+        options,
+        answerIndex,
+        questionType,
+        selectedAnswer: null,
+        isCorrect: null,
+      };
+    });
+
+    setQuizQuestions(questions);
+  }, [missedCardsForQuiz, queue]);
+
+  const handleQuizAnswer = (index: number) => {
+    const questions = [...quizQuestions];
+    const currentQ = questions[quizCurrentIndex];
+    
+    if (currentQ.selectedAnswer !== null) return; // Already answered
+
+    const isCorrect = index === currentQ.answerIndex;
+    currentQ.selectedAnswer = index;
+    currentQ.isCorrect = isCorrect;
+    
+    setQuizQuestions(questions);
+    triggerHaptic(isCorrect ? 'light' : 'medium');
+    
+    setTimeout(() => {
+      if (quizCurrentIndex < questions.length - 1) {
+        setQuizCurrentIndex(quizCurrentIndex + 1);
+      } else {
+        // Quiz finished
+        setShowEndSessionQuiz(false);
+        setMissedCardsForQuiz([]); // Clear for next batch
+      }
+    }, 1500);
+  };
 
 
   // Session statistics
@@ -194,6 +313,74 @@ export default function ReviewPage() {
       setShowAnswer(true);
       setShowFeedback(false);
     }, 1500);
+  }
+
+  function handleFlashPracticeSubmit() {
+    if (!activeFlashPractice) return;
+    const { card, currentModality } = activeFlashPractice;
+    const trimmed = flashPracticeInput.trim();
+
+    if (!trimmed) return;
+
+    let correct = false;
+    if (currentModality === 'reading') {
+      correct = kanaMatchesCard(trimmed, card);
+    } else if (currentModality === 'meaning') {
+      correct = meaningMatchesCard(trimmed, card);
+    } else if (currentModality === 'kanji') {
+      // Very simple string match for kanji
+      const normalize = (text: string) => text.replace(/[\s\-\.\(\)]/g, '');
+      correct = card.kanji ? normalize(trimmed) === normalize(card.kanji) : false;
+      // If the card doesn't have kanji, but we somehow asked for it, we should fallback
+      // Since we check `hasKanji` when setting modalities, this shouldn't happen, but just in case:
+      if (!card.kanji) correct = kanaMatchesCard(trimmed, card);
+    }
+
+    setFlashPracticeCorrect(correct);
+    setFlashPracticeFeedback(true);
+    triggerHaptic(correct ? 'light' : 'medium');
+
+    setTimeout(() => {
+      if (correct) {
+        setFlashPracticeInput('');
+        setFlashPracticeCorrect(null);
+        setFlashPracticeFeedback(false);
+        const nextModalities = activeFlashPractice.remainingModalities.filter((_, idx) => idx !== 0);
+
+        if (nextModalities.length > 0) {
+          setActiveFlashPractice({
+            ...activeFlashPractice,
+            remainingModalities: nextModalities,
+            currentModality: nextModalities[0]
+          });
+        } else {
+          // Finished flash practice! Advance queue.
+          setActiveFlashPractice(null);
+          
+          const nextQueue = queue ? queue.slice(1) : [];
+          setQueue(nextQueue);
+          if (nextQueue.length > 0) {
+            setCurrentCard(nextQueue[0]);
+            triggerHaptic('light');
+          }
+        }
+      } else {
+        // Incorrect, let them see the red feedback and try again
+        setTimeout(() => {
+          setFlashPracticeCorrect(null);
+          setFlashPracticeFeedback(false);
+          setFlashPracticeInput('');
+          flashPracticeInputRef.current?.focus();
+        }, 800);
+      }
+    }, 800);
+  }
+
+  function handleFlashPracticeKeyPress(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleFlashPracticeSubmit();
+    }
   }
 
   function handleKeyPress(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -449,6 +636,33 @@ export default function ReviewPage() {
         was_correct: wasCorrect,
         response_time_ms: cardTime * 1000,
       });
+
+      // Special handling for missed cards
+      if (grade === 'again' || grade === 'hard') {
+        const hasKanji = cardContent.kanji && cardContent.kanji.trim() !== '';
+        // Add to quiz list if not already there
+        if (!missedCardsForQuiz.some(c => c.id === cardContent.id)) {
+          setMissedCardsForQuiz(prev => [...prev, cardContent]);
+        }
+
+        const possibleModalities: ('reading' | 'meaning' | 'kanji')[] = hasKanji 
+          ? ['reading', 'meaning', 'kanji'] 
+          : ['reading', 'meaning'];
+
+        // Shuffle modalities
+        const shuffled = [...possibleModalities].sort(() => 0.5 - Math.random());
+        let requiredModalities = grade === 'again' ? shuffled : [shuffled[0]];
+
+        setActiveFlashPractice({
+          card: cardContent,
+          remainingModalities: requiredModalities,
+          currentModality: requiredModalities[0]
+        });
+        
+        // We do NOT immediately advance the queue. 
+        // We wait for flash practice to finish before `setQueue(nextQueue)`
+        return;
+      }
 
       const nextQueue = queue.slice(1);
       setQueue(nextQueue);
@@ -833,6 +1047,84 @@ export default function ReviewPage() {
     // If session stats are 0, it means we just entered the page and there were no cards
     // Or we finished everything.
     const isSessionFinished = sessionStats.total > 0;
+
+    if (isSessionFinished && missedCardsForQuiz.length > 0 && quizQuestions.length === 0 && !showEndSessionQuiz) {
+      setShowEndSessionQuiz(true);
+      generateQuizQuestions();
+      return null; // Brief flash while rendering next
+    }
+
+    if (showEndSessionQuiz && quizQuestions.length > 0) {
+      const currentQ = quizQuestions[quizCurrentIndex];
+      return (
+        <main className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24 flex items-center justify-center p-4">
+          <div className="max-w-md w-full">
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 flex items-center justify-center gap-2">
+                <RotateCcwIcon className="w-5 h-5 text-teal-500" />
+                Quick Review
+              </h2>
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Let's double check the words you missed.
+                <br />
+                Question {quizCurrentIndex + 1} of {quizQuestions.length}
+              </div>
+            </div>
+
+            <Card className="p-6 text-center shadow-xl dark:bg-gray-800 dark:border-gray-700">
+              <div className="mb-8 mt-4">
+                {currentQ.questionType === 'meaning' ? (
+                  <div className="text-5xl font-bold font-serif text-gray-900 dark:text-white">
+                    {currentQ.card.kanji || currentQ.card.kana}
+                  </div>
+                ) : (
+                  <div className="text-lg text-gray-500 dark:text-gray-400 font-medium mb-2">
+                    What is the reading for:
+                  </div>
+                )}
+
+                {currentQ.questionType === 'reading' ? (
+                  <div className="text-5xl font-bold font-serif text-gray-900 dark:text-white">
+                    {currentQ.card.kanji || currentQ.card.kana}
+                  </div>
+                ) : (
+                   <div className="text-lg text-gray-500 dark:text-gray-400 mt-2 font-medium">
+                     {currentQ.card.kanji ? currentQ.card.kana : ''}
+                   </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                {currentQ.options.map((opt, idx) => {
+                  let btnColor = 'bg-white dark:bg-gray-750 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200';
+                  
+                  if (currentQ.selectedAnswer !== null) {
+                    if (idx === currentQ.answerIndex) {
+                      btnColor = 'bg-green-100 dark:bg-green-900/30 border-green-500 text-green-800 dark:text-green-300';
+                    } else if (idx === currentQ.selectedAnswer) {
+                      btnColor = 'bg-red-100 dark:bg-red-900/30 border-red-500 text-red-800 dark:text-red-300';
+                    } else {
+                      btnColor = 'bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-800 text-gray-400 dark:text-gray-600 opacity-50';
+                    }
+                  }
+
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => handleQuizAnswer(idx)}
+                      disabled={currentQ.selectedAnswer !== null}
+                      className={`w-full py-4 px-6 rounded-xl border-2 font-medium transition-all text-left ${btnColor} disabled:cursor-default`}
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+          </div>
+        </main>
+      );
+    }
 
     return (
       <main className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
@@ -1513,6 +1805,98 @@ export default function ReviewPage() {
       />
 
       <SmartDictionaryFAB />
+
+      {/* Flash Practice Modal */}
+      {activeFlashPractice && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-sm w-full p-6 border border-gray-200 dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-teal-100 dark:bg-teal-900/30 mb-4">
+                <SparklesIcon className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                Flash Practice!
+              </h2>
+              <div className="flex justify-center gap-1 mb-4">
+                {activeFlashPractice.remainingModalities.map((_, i) => (
+                  <div key={i} className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-teal-500' : 'bg-gray-200 dark:bg-gray-600'}`} />
+                ))}
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Let's make sure you remember this one.
+                <br />
+                What is the <span className="font-bold text-teal-600 dark:text-teal-400 capitalize">{activeFlashPractice.currentModality}</span>?
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              <div className="text-center bg-gray-50 dark:bg-gray-750 p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+                {activeFlashPractice.currentModality === 'meaning' && (
+                  <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2 font-serif">
+                    {activeFlashPractice.card.kanji || activeFlashPractice.card.kana}
+                  </div>
+                )}
+                {activeFlashPractice.currentModality === 'reading' && (
+                  <>
+                    <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2 font-serif">
+                      {activeFlashPractice.card.kanji || activeFlashPractice.card.kana}
+                    </div>
+                    {activeFlashPractice.card.kanji && (
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                        {activeFlashPractice.card.meaning_id || activeFlashPractice.card.meaning_en}
+                      </div>
+                    )}
+                  </>
+                )}
+                {activeFlashPractice.currentModality === 'kanji' && (
+                  <>
+                    <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                      {activeFlashPractice.card.kana}
+                    </div>
+                    <div className="text-base text-gray-600 dark:text-gray-300">
+                      {activeFlashPractice.card.meaning_id || activeFlashPractice.card.meaning_en}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Input
+                  ref={flashPracticeInputRef}
+                  type="text"
+                  value={flashPracticeInput}
+                  onChange={(e) => setFlashPracticeInput(e.target.value)}
+                  onKeyPress={handleFlashPracticeKeyPress}
+                  placeholder={`Type the ${activeFlashPractice.currentModality}...`}
+                  className={`text-center text-lg font-medium min-h-[56px] focus-visible:ring-1 focus-visible:ring-teal-400 focus-visible:border-teal-400 ${flashPracticeCorrect === true
+                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 focus-visible:ring-green-500'
+                    : flashPracticeCorrect === false
+                      ? 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 focus-visible:ring-red-500'
+                      : ''
+                    }`}
+                  disabled={flashPracticeFeedback}
+                  autoFocus
+                />
+                <button
+                  onClick={handleFlashPracticeSubmit}
+                  disabled={flashPracticeFeedback || !flashPracticeInput.trim()}
+                  className="w-full py-3 bg-teal-500 hover:bg-teal-600 disabled:bg-gray-300 disabled:dark:bg-gray-700 text-white font-medium rounded-xl transition-colors min-h-[48px] cursor-pointer"
+                >
+                  Verify
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </main >
   );
 }
