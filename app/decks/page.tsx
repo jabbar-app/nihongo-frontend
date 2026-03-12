@@ -7,6 +7,11 @@ import { BookOpenIcon, GraduationCapIcon, BookIcon, LoaderIcon, LayersIcon, Spar
 import { api } from '@/lib/api';
 import DeckFormModal from '@/components/deck-form-modal';
 import Button from '@/components/ui/button';
+import PageContainer from '@/components/ui/page-container';
+import PageHeader from '@/components/ui/page-header';
+import LoadingScreen from '@/components/ui/loading-screen';
+import EmptyState from '@/components/ui/empty-state';
+import ErrorScreen from '@/components/ui/error-screen';
 
 interface Deck {
   id: number;
@@ -188,43 +193,39 @@ export default function DecksPage() {
   );
   const totalCards = generalDeck?.card_count || 0;
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <LoaderIcon className="w-8 h-8 animate-spin text-teal-600" />
-      </div>
-    );
-  }
+  if (loading) return <LoadingScreen message="Loading your study decks..." />;
+
+  if (error) return <ErrorScreen title="Failed to Load Decks" message={error} onRetry={fetchDecks} />;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 pb-24">
-      {/* Header */}
-      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Study Decks</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {decks.length} {decks.length === 1 ? 'deck' : 'decks'}{totalCards > 0 && ` • ${totalCards.toLocaleString()} cards total`}
-          </p>
-        </div>
-        <Button onClick={handleCreateClick} className="flex items-center gap-2">
-          <PlusIcon className="w-4 h-4" />
-          Create Deck
-        </Button>
-      </div>
-
-      {/* Error State */}
-      {error ? (
-        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-xl">
-          {error}
-        </div>
-      ) : decks.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-          <LayersIcon className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-          <p>No decks available yet.</p>
-          <Button variant="outline" className="mt-4" onClick={handleCreateClick}>
-            Create your first deck
+    <PageContainer>
+      <PageHeader
+        title="Study Decks"
+        titleJa="学習デッキ"
+        description={`${decks.length} ${decks.length === 1 ? 'deck' : 'decks'}${totalCards > 0 ? ` • ${totalCards.toLocaleString()} cards total` : ''}`}
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Study Decks' }
+        ]}
+        action={
+          <Button onClick={handleCreateClick} size="sm" className="flex items-center justify-center gap-2 w-full sm:w-auto">
+            <PlusIcon className="w-4 h-4" />
+            Create Deck
           </Button>
-        </div>
+        }
+      />
+
+      {decks.length === 0 ? (
+        <EmptyState 
+          title="No decks available yet"
+          description="Create your first collection of cards to start learning."
+          icon={<LayersIcon className="w-10 h-10 opacity-40" />}
+          action={
+            <Button variant="outline" className="mt-4" onClick={handleCreateClick}>
+              Create your first deck
+            </Button>
+          }
+        />
       ) : (
         <div className="space-y-8">
           {sortedLevels.map((level) => (
@@ -350,6 +351,6 @@ export default function DecksPage() {
         onSave={handleSaveDeck}
         deck={editingDeck}
       />
-    </div>
+    </PageContainer>
   );
 }

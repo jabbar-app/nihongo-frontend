@@ -11,6 +11,8 @@ interface HeaderContextType {
     // Toggle for material page header (maximize content view)
     showMaterialHeader: boolean;
     setShowMaterialHeader: (show: boolean) => void;
+    statusInfo: ReactNode | null;
+    setStatusInfo: (content: ReactNode | null) => void;
 }
 
 const HeaderContext = createContext<HeaderContextType | undefined>(undefined);
@@ -19,9 +21,10 @@ export function HeaderProvider({ children }: { children: ReactNode }) {
     const [headerContent, setHeaderContent] = useState<ReactNode | null>(null);
     const [showDefaultNav, setShowDefaultNav] = useState(true);
     const [showMaterialHeader, setShowMaterialHeader] = useState(true);
+    const [statusInfo, setStatusInfo] = useState<ReactNode | null>(null);
 
     return (
-        <HeaderContext.Provider value={{ headerContent, setHeaderContent, showDefaultNav, setShowDefaultNav, showMaterialHeader, setShowMaterialHeader }}>
+        <HeaderContext.Provider value={{ headerContent, setHeaderContent, showDefaultNav, setShowDefaultNav, showMaterialHeader, setShowMaterialHeader, statusInfo, setStatusInfo }}>
             {children}
         </HeaderContext.Provider>
     );

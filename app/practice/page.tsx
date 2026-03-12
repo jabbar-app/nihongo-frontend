@@ -9,8 +9,7 @@ import Card from "@/components/ui/card";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import Textarea from '@/components/ui/textarea';
-import MobileSidebar from '@/components/mobile-sidebar';
-import { useHeader } from "@/components/header-context";
+
 import PracticeConversation from '@/components/practice/practice-conversation';
 
 interface Reading {
@@ -43,10 +42,7 @@ interface PracticeSession {
 
 
 export default function PracticePage() {
-  // Header Context Integration
-  const { setHeaderContent } = useHeader();
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -76,57 +72,13 @@ export default function PracticePage() {
   const [clue, setClue] = useState<{ structure: string; vocabulary: string } | null>(null);
   const [loadingClue, setLoadingClue] = useState(false);
 
-  const [isMobile, setIsMobile] = useState(false);
 
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   // Auto-play logic
 
 
 
-  useEffect(() => {
-    if (isMobile) {
-      // Only set header content if session is active or we want constant header
-      // The previous implementation had the header always visible.
-      // We will render the header via portal using setHeaderContent.
 
-      setHeaderContent(
-
-        <div className="flex items-center justify-between w-full h-16 px-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors md:hidden cursor-pointer"
-            >
-              <MenuIcon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-            </button>
-
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Practice Conversation
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-2">
-
-            <ThemeToggle />
-          </div>
-        </div>
-      );
-
-
-    } else {
-      setHeaderContent(null);
-    }
-
-    return () => setHeaderContent(null);
-  }, [setHeaderContent, session, ending, sidebarOpen, isMobile]);
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
@@ -486,12 +438,7 @@ export default function PracticePage() {
 
   return (
     <main className="h-[calc(100dvh-4rem)] pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
-      {/* Mobile Sidebar */}
-      <MobileSidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        user={user}
-      />
+
 
       <div className="flex-1 flex flex-col min-h-0 w-full dark:bg-gray-900 relative">
         {/* Error Display */}

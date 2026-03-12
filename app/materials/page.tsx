@@ -3,7 +3,12 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import Link from 'next/link';
-import { FileTextIcon, LoaderIcon, FolderIcon, BookOpenIcon } from 'lucide-react';
+import { FileTextIcon, FolderIcon, BookOpenIcon } from 'lucide-react';
+import PageContainer from '@/components/ui/page-container';
+import PageHeader from '@/components/ui/page-header';
+import LoadingScreen from '@/components/ui/loading-screen';
+import EmptyState from '@/components/ui/empty-state';
+import ErrorScreen from '@/components/ui/error-screen';
 
 interface Material {
     id: number;
@@ -20,6 +25,7 @@ interface GroupedMaterials {
 export default function MaterialsPage() {
     const [groupedMaterials, setGroupedMaterials] = useState<GroupedMaterials>({});
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
     const [activeTab, setActiveTab] = useState<string>('');
 
     useEffect(() => {
@@ -45,6 +51,7 @@ export default function MaterialsPage() {
                 }
             } catch (error) {
                 console.error('Failed to fetch materials', error);
+                setError(true);
             } finally {
                 setLoading(false);
             }
@@ -53,34 +60,32 @@ export default function MaterialsPage() {
         fetchMaterials();
     }, []);
 
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center min-h-[50vh]">
-                <LoaderIcon className="w-8 h-8 animate-spin text-teal-600" />
-            </div>
-        );
-    }
+    if (loading) return <LoadingScreen message="Fetching materials..." />;
+    
+    if (error) return <ErrorScreen onRetry={() => window.location.reload()} />;
 
     const sources = Object.keys(groupedMaterials);
     const activeMaterials = activeTab ? groupedMaterials[activeTab] || [] : [];
 
     return (
-        <div className="max-w-6xl mx-auto px-4 py-8 pb-24">
-            <div className="flex items-center gap-3 mb-8">
-                <div className="p-3 bg-teal-100 dark:bg-teal-900/40 text-teal-600 dark:text-teal-400 rounded-2xl">
-                    <BookOpenIcon className="w-6 h-6" />
-                </div>
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Learning Materials</h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">Access and study from your course books.</p>
-                </div>
-            </div>
+        <PageContainer>
+            <PageHeader
+                title="Learning Materials"
+                titleJa="学習資料"
+                description="Access and study from your course books."
+                icon={<BookOpenIcon className="w-6 h-6" />}
+                breadcrumbs={[
+                    { label: 'Dashboard', href: '/dashboard' },
+                    { label: 'Learning Materials' }
+                ]}
+            />
 
             {sources.length === 0 ? (
-                <div className="text-center py-16 flex flex-col items-center bg-gray-50 dark:bg-gray-800/50 rounded-3xl border border-gray-100 dark:border-gray-700/50">
-                    <FolderIcon className="w-12 h-12 text-gray-400 dark:text-gray-500 mb-4 opacity-50" />
-                    <p className="text-lg font-medium text-gray-600 dark:text-gray-400">No materials available yet.</p>
-                </div>
+                <EmptyState 
+                    title="No materials available"
+                    description="Access and study will be available once materials are uploaded."
+                    icon={<BookOpenIcon className="w-10 h-10 opacity-40" />}
+                />
             ) : (
                 <div className="space-y-8">
                     {/* Horizontal Scrollable Tabs */}
@@ -133,6 +138,6 @@ export default function MaterialsPage() {
                     </div>
                 </div>
             )}
-        </div>
+        </PageContainer>
     );
 }

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon, AwardIcon, Trash2Icon, LoaderIcon, RotateCcwIcon } from 'lucide-react';
 import Card from '@/components/ui/card';
 import { api } from '@/lib/api';
+import PageContainer from '@/components/ui/page-container';
+import PageHeader from '@/components/ui/page-header';
 
 interface CardData {
   id: number;
@@ -84,29 +86,18 @@ export default function MasteredCardsPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
-      <div className="max-w-md mx-auto md:max-w-4xl px-4 pt-4 md:pt-8">
-        {/* Header */}
-        <div className="mb-6">
-          <button
-            onClick={() => router.push('/history')}
-            className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 mb-4 transition-colors cursor-pointer"
-          >
-            <ArrowLeftIcon className="w-5 h-5 mr-1" />
-            Back to History
-          </button>
-
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-teal-100 dark:bg-teal-900/30 rounded-xl">
-              <AwardIcon className="w-8 h-8 text-teal-600 dark:text-teal-400" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Mastered Cards</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                You have mastered {cards.length} cards
-              </p>
-            </div>
-          </div>
-        </div>
+      <PageContainer>
+        <PageHeader
+          title="Mastered Cards"
+          titleJa="習得済みのカード"
+          description={`You have mastered ${cards.length} cards`}
+          icon={<AwardIcon className="w-8 h-8" />}
+          breadcrumbs={[
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: 'History', href: '/history' },
+            { label: 'Mastered Cards' }
+          ]}
+        />
 
         {error && (
           <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-xl">
@@ -159,7 +150,7 @@ export default function MasteredCardsPage() {
             </p>
           </div>
         )}
-      </div>
+      </PageContainer>
     </main>
   );
 }

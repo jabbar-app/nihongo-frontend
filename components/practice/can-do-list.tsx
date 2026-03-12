@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import CanDoItem from './can-do-item';
-import { LoaderIcon, PlusIcon, XIcon, CheckIcon, Edit2Icon } from 'lucide-react';
+import { LoaderIcon, PlusIcon, XIcon, CheckIcon, Edit2Icon, CheckCircle2Icon } from 'lucide-react';
+import PageHeader from '@/components/ui/page-header';
+import Button from '@/components/ui/button';
 
 interface CanDoTarget {
     id: number;
@@ -140,22 +142,27 @@ export default function CanDoList() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8 pb-12 relative">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Can-do Checklist</h1>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-                        Evaluate your progress across all chapters.
-                    </p>
-                </div>
-                <button
-                    onClick={openAddChapterModal}
-                    className="flex shrink-0 items-center justify-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-lg transition-colors cursor-pointer text-sm sm:text-base w-full sm:w-auto shadow-sm hover:shadow"
-                >
-                    <PlusIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                    <span>Add New Chapter</span>
-                </button>
-            </div>
+        <div className="space-y-8 pb-12 relative">
+            <PageHeader
+                title="Can-do Checklist"
+                titleJa="できることチェックリスト"
+                description="Evaluate your progress across all chapters."
+                icon={<CheckCircle2Icon className="w-6 h-6" />}
+                breadcrumbs={[
+                    { label: 'Dashboard', href: '/dashboard' },
+                    { label: 'Can-do Checklist' }
+                ]}
+                action={
+                    <Button
+                        onClick={openAddChapterModal}
+                        className="w-full sm:w-auto gap-2"
+                        size="sm"
+                    >
+                        <PlusIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <span>Add New Chapter</span>
+                    </Button>
+                }
+            />
 
             {chapters.map((chapter) => {
                 const total = chapter.targets.length;

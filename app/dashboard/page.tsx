@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FlameIcon, PlayIcon, BookOpenIcon, GlobeIcon, BriefcaseIcon, UserIcon, ShoppingBagIcon, GraduationCapIcon, BookIcon, MenuIcon, InfoIcon, XIcon, StarIcon } from 'lucide-react';
-import MobileSidebar from '@/components/mobile-sidebar';
 import { useHeader } from '@/components/header-context';
 import ThemeToggle from '@/components/theme-toggle';
 import { useTheme } from '@/lib/theme-context';
 import { api } from '@/lib/api';
+import DeckCard from '@/components/ui/deck-card';
+import StatsCard from '@/components/ui/stats-card';
 
 interface DashboardData {
   dueToday: number;
@@ -65,12 +66,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [user, setUser] = useState<any>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isDarkMode } = useTheme();
   const [cardsMasteredInfoOpen, setCardsMasteredInfoOpen] = useState(false);
 
   // Header Context
-  const { setHeaderContent } = useHeader();
+  const { setStatusInfo } = useHeader();
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -83,32 +83,17 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (isMobile) {
-      setHeaderContent(
-        <div className="flex items-center justify-between w-full h-16 px-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 md:hidden">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              <MenuIcon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            {data && (
-              <div className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 px-3 py-1 rounded-full text-sm font-semibold">
-                {formatTime(data.timeSpentToday)}
-              </div>
-            )}
-            <ThemeToggle />
-          </div>
+    if (isMobile && data) {
+      setStatusInfo(
+        <div className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap">
+          {formatTime(data.timeSpentToday)}
         </div>
       );
     } else {
-      setHeaderContent(null); // Use default navbar on desktop
+      setStatusInfo(null);
     }
-    return () => setHeaderContent(null);
-  }, [setHeaderContent, data, sidebarOpen, isMobile]);
+    return () => setStatusInfo(null);
+  }, [setStatusInfo, data, isMobile]);
 
 
   useEffect(() => {
@@ -274,7 +259,7 @@ export default function DashboardPage() {
     router.push(`/decks/${deck.slug}`);
   };
 
-  const handleToggleFavorite = async (e: React.MouseEvent, deckId: number) => {
+  const handleToggleFavorite = async (deckId: number, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
       const response = await api.post<{ is_favorite: boolean }>(`/api/v1/decks/${deckId}/favorite`, {});
@@ -292,13 +277,6 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
-      {/* Mobile Sidebar */}
-      <MobileSidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        user={user}
-      />
-
       <div className="max-w-md mx-auto md:max-w-4xl">
         {/* User Profile Section */}
         <div className="px-4 pt-4 pb-2 md:pt-8">
@@ -597,46 +575,15 @@ export default function DashboardPage() {
               {data.decks.map((deck) => {
                 const { Icon, bgColor, iconColor } = getDeckIcon(deck);
                 return (
-                  <div
+                  <DeckCard
                     key={deck.id}
+                    deck={deck}
+                    icon={<Icon />}
+                    iconBgColor={bgColor}
+                    iconTextColor={iconColor}
                     onClick={() => handleDeckClick(deck)}
-                    className="group bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow text-left cursor-pointer flex flex-col relative"
-                  >
-                    <button
-                      onClick={(e) => handleToggleFavorite(e, deck.id)}
-                      className={`absolute top-4 right-4 p-2 rounded-full cursor-pointer transition-colors ${deck.is_favorite ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30' : 'text-gray-300 dark:text-gray-600 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30'}`}
-                      aria-label="Toggle favorite"
-                    >
-                      <StarIcon className={`w-5 h-5 ${deck.is_favorite ? 'fill-current' : ''}`} />
-                    </button>
-
-                    <div className={`w-10 h-10 ${bgColor} dark:opacity-80 rounded-lg flex items-center justify-center mb-2`}>
-                      <Icon className={`w-5 h-5 ${iconColor}`} />
-                    </div>
-
-                    <div className="font-semibold text-sm mb-1 text-gray-900 dark:text-white pr-8">{deck.name}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                      {deck.card_count} {deck.card_count === 1 ? 'card' : 'cards'}
-                      {deck.level && ` • ${deck.level}`}
-                    </div>
-
-                    <div className="mt-auto pt-2 border-t border-gray-100 dark:border-gray-700">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-gray-500 dark:text-gray-400">Mastery</span>
-                        <span className="text-xs font-semibold text-teal-600 dark:text-teal-400">
-                          {deck.mastered_count ?? 0} / {deck.card_count}
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5">
-                        <div
-                          className="bg-teal-500 dark:bg-teal-400 h-1.5 rounded-full transition-all duration-300"
-                          style={{
-                            width: `${deck.card_count > 0 ? Math.min(100, (((deck.mastered_count ?? 0) / deck.card_count) * 100)) : 0}%`
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
+                    onToggleFavorite={handleToggleFavorite}
+                  />
                 );
               })}
             </div>
@@ -650,22 +597,10 @@ export default function DashboardPage() {
         {/* Stats Cards */}
         <div className="px-4 mb-4">
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 shadow-sm">
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Due Today</div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">{data.dueToday}</div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 shadow-sm">
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Reviewed</div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">{data.reviewedToday}</div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 shadow-sm">
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Accuracy</div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">{data.accuracyRate}%</div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 dark:border dark:border-gray-600 rounded-2xl p-4 shadow-sm">
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Mastered</div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">{data.cardsMastered}</div>
-            </div>
+            <StatsCard title="Due Today" value={data.dueToday} />
+            <StatsCard title="Reviewed" value={data.reviewedToday} />
+            <StatsCard title="Accuracy" value={data.accuracyRate + '%'} />
+            <StatsCard title="Mastered" value={data.cardsMastered} />
           </div>
         </div>
       </div>

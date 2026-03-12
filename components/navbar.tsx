@@ -2,7 +2,7 @@
 
 import { links } from "@/data/links";
 import { ILink } from "@/types";
-import { MenuIcon, XIcon, HomeIcon, BookOpenIcon, LibraryIcon, UserIcon, LogOutIcon, SettingsIcon, CalendarIcon, ChevronDownIcon, FileTextIcon, PanelTopCloseIcon, PanelTopOpenIcon, Maximize2Icon, Minimize2Icon, CheckCircle2Icon, HistoryIcon, TrophyIcon, SparklesIcon, SearchIcon, BookIcon } from "lucide-react";
+import { MenuIcon, XIcon, HomeIcon, BookOpenIcon, LibraryIcon, UserIcon, LogOutIcon, SettingsIcon, CalendarIcon, ChevronDownIcon, FileTextIcon, PanelTopCloseIcon, PanelTopOpenIcon, Maximize2Icon, Minimize2Icon, CheckCircle2Icon, HistoryIcon, TrophyIcon, SparklesIcon, SearchIcon, BookIcon, LayoutDashboard } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -13,7 +13,7 @@ import ThemeToggle from "@/components/theme-toggle";
 import { useHeader } from "@/components/header-context";
 
 export default function Navbar() {
-  const { headerContent, showDefaultNav, setShowDefaultNav, showMaterialHeader, setShowMaterialHeader } = useHeader();
+  const { headerContent, showDefaultNav, setShowDefaultNav, showMaterialHeader, setShowMaterialHeader, statusInfo } = useHeader();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -161,12 +161,19 @@ export default function Navbar() {
     <>
       <nav className={`sticky top-0 ${isMenuOpen || isProfileDropdownOpen ? 'z-50' : 'z-20'} w-full px-4 py-2 border-b transition-all duration-300 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${isScrolled ? 'shadow-md' : 'shadow-sm'}`}>
         <div className="flex items-center justify-between">
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer"
-          >
-            <MenuIcon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+            >
+              <MenuIcon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+            </button>
+            {statusInfo && (
+              <div className="flex items-center md:hidden">
+                {statusInfo}
+              </div>
+            )}
+          </div>
 
           {/* Desktop Navigation - Center */}
           <div className="hidden md:flex flex-1 items-center justify-between mx-4">
@@ -192,7 +199,7 @@ export default function Navbar() {
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
                       }`}
                   >
-                    <HomeIcon className="w-5 h-5" />
+                    <LayoutDashboard className="w-5 h-5" />
                     <span>Dashboard</span>
                   </Link>
                   <Link
@@ -294,6 +301,7 @@ export default function Navbar() {
                 </button>
               </>
             )}
+
             <ThemeToggle className="cursor-pointer" />
 
             {/* Profile Dropdown - Only when logged in */}

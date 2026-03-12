@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon, TrendingUpIcon, CalendarIcon, TargetIcon, AwardIcon } from 'lucide-react';
 import Card from '@/components/ui/card';
 import { api } from '@/lib/api';
+import PageContainer from '@/components/ui/page-container';
+import PageHeader from '@/components/ui/page-header';
 
 interface DashboardData {
   dueToday: number;
@@ -137,16 +139,20 @@ export default function HistoryPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
-      <div className="max-w-md mx-auto md:max-w-4xl">
-        {/* Page Header */}
-        <div className="px-4 pt-4 md:pt-8 pb-4">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">History & Summary</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Your learning progress and statistics</p>
-        </div>
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <PageContainer>
+        <PageHeader 
+          title="History & Summary" 
+          titleJa="履歴と概要"
+          description="Your learning progress and statistics" 
+          breadcrumbs={[
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: 'History & Summary' }
+          ]}
+        />
 
         {/* Summary Cards */}
-        <div className="px-4 my-4">
+        <div className="my-4">
           <div className="grid grid-cols-2 gap-3">
             <Card className="p-4 dark:border dark:border-gray-600 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer" onClick={() => router.push('/history/mastered')}>
               <div className="flex items-center gap-2 mb-2">
@@ -180,7 +186,7 @@ export default function HistoryPage() {
         </div>
 
         {/* Rank Progress */}
-        <div className="px-4 mb-4">
+        <div className="mb-4">
           <Card className="dark:border dark:border-gray-600">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -217,7 +223,7 @@ export default function HistoryPage() {
 
         {/* Recent Activity Chart */}
         {data.chartData && data.chartData.length > 0 && (
-          <div className="px-4 mb-4">
+          <div className="mb-4">
             <Card className="dark:border dark:border-gray-600">
               <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Last 14 Days Activity</h2>
               <div className="space-y-3">
@@ -244,7 +250,7 @@ export default function HistoryPage() {
         )}
 
         {/* Today's Stats */}
-        <div className="px-4 mb-4">
+        <div className="mb-4">
           <Card className="dark:border dark:border-gray-600">
             <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Today's Progress</h2>
             <div className="grid grid-cols-2 gap-4">
@@ -267,7 +273,7 @@ export default function HistoryPage() {
             </div>
           </Card>
         </div>
-      </div>
+      </PageContainer>
     </main>
   );
 }

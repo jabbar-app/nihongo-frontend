@@ -15,14 +15,14 @@ export default function Button({
     children,
     ...props
 }: ButtonProps) {
-    const baseStyles = 'font-medium rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+    const baseStyles = 'font-medium rounded-full transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5 active:translate-y-0 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500/50 dark:focus:ring-offset-gray-900 flex items-center justify-center';
     
     const variants = {
-        primary: 'bg-teal-600 dark:bg-teal-500 text-white hover:bg-teal-700 dark:hover:bg-teal-600 shadow-sm',
-        secondary: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600',
-        success: 'bg-green-500 dark:bg-green-600 text-white hover:bg-green-600 dark:hover:bg-green-700 shadow-sm',
-        danger: 'bg-red-500 dark:bg-red-600 text-white hover:bg-red-600 dark:hover:bg-red-700 shadow-sm',
-        outline: 'border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700',
+        primary: 'bg-teal-600 dark:bg-teal-500 text-white hover:bg-teal-500 dark:hover:bg-teal-400 shadow-md hover:shadow-lg',
+        secondary: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 shadow-sm',
+        success: 'bg-green-500 dark:bg-green-600 text-white hover:bg-green-400 dark:hover:bg-green-500 shadow-md hover:shadow-lg',
+        danger: 'bg-red-500 dark:bg-red-600 text-white hover:bg-red-400 dark:hover:bg-red-500 shadow-md hover:shadow-lg',
+        outline: 'border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm hover:shadow',
     };
     
     const sizes = {
