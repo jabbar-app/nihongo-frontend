@@ -362,7 +362,7 @@ export default function PracticePage() {
           </button>
 
           {showHeaderMenu && (
-            <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-1.5 z-[52] animate-in fade-in slide-in-from-top-2 duration-150">
+            <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-1.5 z-[52] animate-in fade-in slide-in-from-top-2 duration-150">
               <button
                 onClick={() => { generatePracticeSentence(card); setShowHeaderMenu(false); }}
                 disabled={generatingSentence}
