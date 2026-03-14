@@ -354,7 +354,7 @@ export default function PracticePage() {
         <div className="relative" ref={headerMenuRef}>
           <button
             onClick={() => setShowHeaderMenu(!showHeaderMenu)}
-            className="flex items-center gap-1 p-2 rounded-lg bg-teal-100 dark:bg-teal-900/40 text-teal-600 dark:text-teal-400 hover:bg-teal-200 dark:hover:bg-teal-900/60 transition-colors cursor-pointer"
+            className="flex items-center gap-1 p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-900/60 transition-colors cursor-pointer"
             title="Options"
           >
             <LightbulbIcon className="w-5 h-5" />
@@ -366,10 +366,10 @@ export default function PracticePage() {
               <button
                 onClick={() => { generatePracticeSentence(card); setShowHeaderMenu(false); }}
                 disabled={generatingSentence}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors cursor-pointer disabled:opacity-50"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors cursor-pointer disabled:opacity-50 whitespace-nowrap"
               >
-                <RotateCcwIcon className={`w-4 h-4 text-teal-500 ${generatingSentence ? 'animate-spin' : ''}`} />
-                Generate New Sentence
+                <RotateCcwIcon className={`w-4 h-4 text-teal-500 flex-shrink-0 ${generatingSentence ? 'animate-spin' : ''}`} />
+                <span className="truncate">Generate New Sentence</span>
               </button>
               <div className="h-px bg-gray-200 dark:bg-gray-700 my-1.5 mx-3" />
               <button
