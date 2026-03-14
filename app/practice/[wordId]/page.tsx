@@ -7,6 +7,9 @@ import ReactMarkdown from 'react-markdown';
 import Button from '@/components/ui/button';
 import Input from '@/components/ui/input';
 import SmartDictionaryFAB from '@/components/smart-dictionary-fab';
+import { AUTH_CONSTANTS } from '@/constants/auth';
+import { API_CONSTANTS } from '@/constants/api';
+import { ROUTES } from '@/constants/routes';
 
 interface PracticeSentence {
   practice_sentence_id?: number | string;
@@ -69,13 +72,13 @@ export default function PracticePage() {
 
   const fetchCardData = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
       if (!token) {
-        router.push('/login');
+        router.push(ROUTES.AUTH.LOGIN);
         return;
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || API_CONSTANTS.DEFAULT_BASE_URL;
       const res = await fetch(`${apiUrl}/api/v1/cards/${wordId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -121,10 +124,10 @@ export default function PracticePage() {
     setShowEnTranslation(false);
 
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
       if (!token) return;
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || API_CONSTANTS.DEFAULT_BASE_URL;
       const excludeSentence = practiceSentence?.ja;
 
       const response = await fetch(`${apiUrl}/api/v1/cards/${currentCard.id}/generate-sentence`, {
@@ -163,10 +166,10 @@ export default function PracticePage() {
     if (!practiceSentence || !practiceSentence.practice_sentence_id) return;
     setGeneratingTranslation(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
       if (!token) return;
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || API_CONSTANTS.DEFAULT_BASE_URL;
       const res = await fetch(`${apiUrl}/api/v1/practice-sentences/${practiceSentence.practice_sentence_id}/translate?force=true`, {
         method: 'POST',
         headers: {
@@ -194,10 +197,10 @@ export default function PracticePage() {
     if (!practiceSentence || !practiceSentence.practice_sentence_id) return;
     setGeneratingFurigana(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
       if (!token) return;
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || API_CONSTANTS.DEFAULT_BASE_URL;
       const res = await fetch(`${apiUrl}/api/v1/practice-sentences/${practiceSentence.practice_sentence_id}/furigana?force=true`, {
         method: 'POST',
         headers: {
@@ -302,6 +305,7 @@ export default function PracticePage() {
 
     if (isCorrect) {
       setTimeout(() => {
+        console.log('[PracticePage] handleCheckAndFinish: Navigating back to review');
         router.back();
       }, 1000);
     }
@@ -319,7 +323,10 @@ export default function PracticePage() {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
         <div className="text-red-500 mb-4">{error || "Card not found"}</div>
-        <Button onClick={() => router.back()} variant="outline">Back</Button>
+        <Button onClick={() => {
+          console.log('[PracticePage] Error back button clicked');
+          router.back();
+        }} variant="outline">Back</Button>
       </div>
     );
   }
@@ -330,7 +337,10 @@ export default function PracticePage() {
       <div className="sticky top-0 z-25 flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-teal-50 to-blue-50 dark:from-teal-900/20 dark:to-blue-900/20 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.back()}
+            onClick={() => {
+              console.log('[PracticePage] Back button clicked');
+              router.back();
+            }}
             className="p-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
             title="Back to Review"
           >

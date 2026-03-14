@@ -10,6 +10,10 @@ import SocialAuth from "@/components/auth/social-auth";
 import { api } from "@/lib/api";
 import { useRequireGuest } from "@/hooks/use-require-guest";
 import { MailIcon, LockIcon } from "lucide-react";
+import { AUTH_CONSTANTS } from "@/constants/auth";
+import { ROUTES } from "@/constants/routes";
+import { API_CONSTANTS } from "@/constants/api";
+import { MESSAGES } from "@/constants/messages";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -25,18 +29,18 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            const data = await api.post<any>('/api/v1/auth/login', { email, password });
+            const data = await api.post<any>(API_CONSTANTS.ENDPOINTS.AUTH.LOGIN, { email, password });
 
             if (data.token) {
-                localStorage.setItem('auth_token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
+                localStorage.setItem(AUTH_CONSTANTS.TOKEN_KEY, data.token);
+                localStorage.setItem(AUTH_CONSTANTS.USER_KEY, JSON.stringify(data.user));
             }
 
             // Trigger storage event for navbar update
             window.dispatchEvent(new Event('storage'));
-            router.push('/dashboard');
+            router.push(ROUTES.DASHBOARD);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'An error occurred');
+            setError(err instanceof Error ? err.message : MESSAGES.ERRORS.GENERIC);
         } finally {
             setLoading(false);
         }
@@ -105,7 +109,7 @@ export default function LoginPage() {
 
                 <p className="text-center text-sm text-gray-500 dark:text-gray-400">
                     Don&apos;t have an account?{" "}
-                    <Link href="/register" className="font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors">
+                    <Link href={ROUTES.AUTH.REGISTER} className="font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors">
                         Create an account
                     </Link>
                 </p>

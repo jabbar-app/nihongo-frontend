@@ -1,4 +1,5 @@
 import { ButtonHTMLAttributes, ReactNode } from 'react';
+import React from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'outline';
@@ -7,7 +8,20 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     children: ReactNode;
 }
 
-export default function Button({
+/**
+ * Button Component
+ * 
+ * A versatile button component with multiple variants and sizes.
+ * Memoized to prevent unnecessary re-renders.
+ * 
+ * @example
+ * ```tsx
+ * <Button variant="primary" size="md" onClick={handleClick}>
+ *   Click me
+ * </Button>
+ * ```
+ */
+function Button({
     variant = 'primary',
     size = 'md',
     fullWidth = false,
@@ -40,3 +54,7 @@ export default function Button({
         </button>
     );
 }
+
+Button.displayName = 'Button';
+
+export default React.memo(Button);

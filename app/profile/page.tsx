@@ -15,6 +15,8 @@ import MobileSidebar from '@/components/mobile-sidebar';
 import { api } from '@/lib/api';
 import { useHeader } from '@/components/header-context';
 import ThemeToggle from '@/components/theme-toggle';
+import { AUTH_CONSTANTS } from '@/constants/auth';
+import { ROUTES } from '@/constants/routes';
 
 interface User {
   id: number;
@@ -153,9 +155,9 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
     if (!token) {
-      router.push('/login');
+      router.push(ROUTES.AUTH.LOGIN);
       return;
     }
 

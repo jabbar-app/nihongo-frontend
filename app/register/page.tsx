@@ -10,6 +10,11 @@ import SocialAuth from "@/components/auth/social-auth";
 import { api } from "@/lib/api";
 import { useRequireGuest } from "@/hooks/use-require-guest";
 import { UserIcon, MailIcon, LockIcon } from "lucide-react";
+import { AUTH_CONSTANTS } from "@/constants/auth";
+import { ROUTES } from "@/constants/routes";
+import { API_CONSTANTS } from "@/constants/api";
+import { MESSAGES } from "@/constants/messages";
+import { VALIDATION_CONSTANTS } from "@/constants/validation";
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -24,8 +29,8 @@ export default function RegisterPage() {
         e.preventDefault();
         setError('');
 
-        if (password.length < 8) {
-            setError('Password must be at least 8 characters');
+        if (password.length < VALIDATION_CONSTANTS.PASSWORD.MIN_LENGTH) {
+            setError(MESSAGES.VALIDATION.PASSWORD_MIN_LENGTH);
             return;
         }
 
@@ -33,22 +38,22 @@ export default function RegisterPage() {
 
         try {
             // Note: password_confirmation is no longer required by backend as per plan
-            const data = await api.post<any>('/api/v1/auth/register', {
+            const data = await api.post<any>(API_CONSTANTS.ENDPOINTS.AUTH.REGISTER, {
                 name,
                 email,
                 password,
             });
 
             if (data.token) {
-                localStorage.setItem('auth_token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
+                localStorage.setItem(AUTH_CONSTANTS.TOKEN_KEY, data.token);
+                localStorage.setItem(AUTH_CONSTANTS.USER_KEY, JSON.stringify(data.user));
             }
 
             // Trigger storage event for navbar update
             window.dispatchEvent(new Event('storage'));
-            router.push('/dashboard');
+            router.push(ROUTES.DASHBOARD);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'An error occurred');
+            setError(err instanceof Error ? err.message : MESSAGES.ERRORS.GENERIC);
         } finally {
             setLoading(false);
         }
@@ -122,7 +127,7 @@ export default function RegisterPage() {
 
                 <p className="text-center text-sm text-gray-500 dark:text-gray-400">
                     Already have an account?{" "}
-                    <Link href="/login" className="font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors">
+                    <Link href={ROUTES.AUTH.LOGIN} className="font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors">
                         Log in
                     </Link>
                 </p>

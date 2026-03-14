@@ -9,6 +9,7 @@ import Button from '@/components/ui/button';
 import Input from '@/components/ui/input';
 import CardEditModal from '@/components/card-edit-modal';
 import { PencilIcon } from 'lucide-react';
+import { DeckCardsList } from '@/components/deck-cards-list';
 
 interface Deck {
   id: number;
@@ -36,7 +37,9 @@ export default function DeckDetailPage() {
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [editingCard, setEditingCard] = useState<any>(null);
-  const [displayLimit, setDisplayLimit] = useState(50);
+  const [displayedCards, setDisplayedCards] = useState<any[]>([]);
+  const [cardsPerPage] = useState(20);
+  const [hasMore, setHasMore] = useState(true);
 
   console.log('DeckDetailPage: Rendering', { slug, deckDataCount: deckData?.cards?.length });
 
@@ -47,6 +50,10 @@ export default function DeckDetailPage() {
       try {
         const data = await api.get<DeckData>(`/api/v1/decks/${slug}`);
         setDeckData(data);
+        // Initialize with first batch of cards
+        const cardsList = Array.isArray(data.cards) ? data.cards : (data.cards?.data || []);
+        setDisplayedCards(cardsList.slice(0, cardsPerPage));
+        setHasMore(cardsList.length > cardsPerPage);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -55,7 +62,7 @@ export default function DeckDetailPage() {
     };
 
     fetchDeck();
-  }, [slug]);
+  }, [slug, cardsPerPage]);
 
   if (loading) {
     return (
@@ -85,6 +92,14 @@ export default function DeckDetailPage() {
     );
   }
 
+  const handleLoadMore = () => {
+    if (!deckData) return;
+    const cardsList = Array.isArray(deckData.cards) ? deckData.cards : (deckData.cards?.data || []);
+    const newCount = displayedCards.length + cardsPerPage;
+    setDisplayedCards(cardsList.slice(0, newCount));
+    setHasMore(newCount < cardsList.length);
+  };
+
   const { deck, cards: rawCards } = deckData;
   // Handle pagination (Laravel returns { data: [...] } for paginate(), array for get())
   // @ts-ignore - cards type definition in interface might need update but this fixes runtime
@@ -92,7 +107,7 @@ export default function DeckDetailPage() {
 
   // Filter cards based on search
   console.log('DeckDetailPage: filtering cards', { total: cardsList.length, searchQuery });
-  const filteredCards = cardsList.filter((card: any) =>
+  const filteredCards = displayedCards.filter((card: any) =>
     (card.kanji && card.kanji.includes(searchQuery)) ||
     (card.kana && card.kana.includes(searchQuery)) ||
     (card.meaning_en && card.meaning_en.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -194,74 +209,26 @@ export default function DeckDetailPage() {
             </div>
           </div>
 
-          {/* Cards Grid */}
+          {/* Cards Grid - Virtualized for performance */}
           <div className="p-4 sm:p-6 bg-gray-50/50 dark:bg-gray-900/50 min-h-[300px]">
-            {filteredCards.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredCards.slice(0, displayLimit).map((card: any) => (
-                  <div key={card.id} className="group bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-teal-300 dark:hover:border-teal-700 hover:shadow-md transition-all duration-200">
-                    <div className="flex justify-between items-start mb-2">
-                      {card.kanji ? (
-                        <div className="text-2xl font-bold text-gray-900 dark:text-white font-serif">
-                          {card.kanji}
-                        </div>
-                      ) : (
-                        <div className="text-lg font-bold text-gray-900 dark:text-white">
-                          {card.kana}
-                        </div>
-                      )}
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => setEditingCard(card)}
-                          className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-700 hover:bg-teal-50 dark:hover:bg-teal-900/30 flex items-center justify-center transition-colors"
-                        >
-                          <PencilIcon className="w-4 h-4 text-gray-400 hover:text-teal-600 dark:hover:text-teal-400" />
-                        </button>
-                        <div className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
-                          <GraduationCapIcon className="w-4 h-4 text-gray-400" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {card.kanji && (
-                      <div className="text-sm text-teal-600 dark:text-teal-400 font-medium mb-1">
-                        {card.kana}
-                      </div>
-                    )}
-
-                    <div className="text-gray-600 dark:text-gray-300 text-sm border-t border-gray-100 dark:border-gray-700 pt-2 mt-2">
-                      {card.meaning_id || card.meaning_en}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500 dark:text-gray-400">
-                <SearchIcon className="w-12 h-12 mb-3 opacity-20" />
-                <p>No cards found matching "{searchQuery}"</p>
-              </div>
-            )}
-
-            {filteredCards.length > displayLimit && (
-              <div className="mt-8 flex flex-col items-center gap-4">
-                <span className="text-sm font-medium text-gray-500">
-                  Showing {displayLimit} of {filteredCards.length} cards
-                </span>
+            <DeckCardsList
+              cards={filteredCards}
+              searchQuery={searchQuery}
+              onEditCard={setEditingCard}
+              isLoading={false}
+              emptyMessage={`No cards found matching "${searchQuery}"`}
+            />
+            
+            {/* Load More Button */}
+            {hasMore && !searchQuery && (
+              <div className="flex justify-center mt-8">
                 <Button
-                  onClick={() => setDisplayLimit(prev => prev + 50)}
+                  onClick={handleLoadMore}
                   variant="outline"
-                  className="px-8 py-2 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 cursor-pointer transition-all active:scale-95"
+                  className="px-8 py-3 cursor-pointer"
                 >
-                  Load More / もっと
+                  Load More Cards ({displayedCards.length} / {Array.isArray(deckData.cards) ? deckData.cards.length : (deckData.cards?.data?.length || 0)})
                 </Button>
-              </div>
-            )}
-
-            {filteredCards.length > 0 && filteredCards.length <= displayLimit && filteredCards.length > 50 && (
-              <div className="mt-8 text-center">
-                <span className="text-sm font-medium text-gray-500 bg-white dark:bg-gray-800 px-5 py-2 rounded-full border border-gray-200 dark:border-gray-700 shadow-sm">
-                  Showing all {filteredCards.length} cards
-                </span>
               </div>
             )}
           </div>

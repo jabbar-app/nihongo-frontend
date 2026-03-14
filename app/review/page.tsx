@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { LightbulbIcon, LightbulbOffIcon, CheckCircleIcon, XCircleIcon, ArrowLeftIcon, Volume2Icon, MenuIcon, UndoIcon, SkipForwardIcon, ClockIcon, TrendingUpIcon, XIcon, EditIcon, TrashIcon, SparklesIcon, SaveIcon, LoaderIcon, PencilIcon, BookOpenIcon, EyeIcon, EyeOffIcon, LanguagesIcon, RotateCcwIcon, SendIcon } from 'lucide-react';
 import ThemeToggle from '@/components/theme-toggle';
 import Card from "@/components/ui/card";
@@ -13,6 +14,9 @@ import MobileSidebar from '@/components/mobile-sidebar';
 import CardEditModal from '@/components/card-edit-modal';
 import ConfirmModal from '@/components/confirm-modal';
 import SmartDictionaryFAB from '@/components/smart-dictionary-fab';
+import { AUTH_CONSTANTS } from '@/constants/auth';
+import { ROUTES } from '@/constants/routes';
+import { API_CONSTANTS } from '@/constants/api';
 
 interface UserCardData {
   repetition: number;
@@ -79,9 +83,33 @@ function formatSessionTime(ms: number): string {
 
 export default function ReviewPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const deckId = searchParams?.get('deck_id');
   const { setHeaderContent } = useHeader();
-  const [queue, setQueue] = useState<CardContent[] | null>(null);
-  const [currentCard, setCurrentCard] = useState<CardContent | null>(null);
+  const [queue, setQueue] = useState<CardContent[] | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const saved = sessionStorage.getItem('reviewQueue');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('[ReviewPage] useState: Failed to parse saved queue', e);
+      }
+    }
+    return null;
+  });
+  const [currentCard, setCurrentCard] = useState<CardContent | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const saved = sessionStorage.getItem('reviewCurrentCard');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('[ReviewPage] useState: Failed to parse saved currentCard', e);
+      }
+    }
+    return null;
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [showAnswer, setShowAnswer] = useState(false);
@@ -262,14 +290,38 @@ export default function ReviewPage() {
   };
 
 
-  // Session statistics
-  const [sessionStats, setSessionStats] = useState({
-    correct: 0,
-    incorrect: 0,
-    total: 0,
-    startTime: Date.now(),
-    cardTimes: [] as number[]
+  // Session statistics - persisted to sessionStorage
+  const [sessionStats, setSessionStats] = useState(() => {
+    if (typeof window === 'undefined') {
+      return {
+        correct: 0,
+        incorrect: 0,
+        total: 0,
+        startTime: Date.now(),
+        cardTimes: [] as number[]
+      };
+    }
+    const saved = sessionStorage.getItem('reviewSessionStats');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('[ReviewPage] useState: Failed to parse saved sessionStats', e);
+      }
+    }
+    return {
+      correct: 0,
+      incorrect: 0,
+      total: 0,
+      startTime: Date.now(),
+      cardTimes: [] as number[]
+    };
   });
+
+  // Persist session stats to sessionStorage whenever they change
+  useEffect(() => {
+    sessionStorage.setItem('reviewSessionStats', JSON.stringify(sessionStats));
+  }, [sessionStats]);
 
   // Card tracking
   const [currentCardStartTime, setCurrentCardStartTime] = useState(Date.now());
@@ -353,6 +405,10 @@ export default function ReviewPage() {
             remainingModalities: nextModalities,
             currentModality: nextModalities[0]
           });
+          // Focus input after state update
+          setTimeout(() => {
+            flashPracticeInputRef.current?.focus();
+          }, 50);
         } else {
           // Finished flash practice! Advance queue.
           setActiveFlashPractice(null);
@@ -398,11 +454,15 @@ export default function ReviewPage() {
   };
 
   async function fetchMnemonic(cardId: number) {
+    if (!cardId || typeof cardId !== 'number') {
+      return;
+    }
+    
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
       if (!token) return;
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || API_CONSTANTS.DEFAULT_BASE_URL;
       const response = await fetch(`${apiUrl}/api/v1/cards/${cardId}/mnemonic`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -429,14 +489,20 @@ export default function ReviewPage() {
 
   async function generateMnemonic() {
     if (!currentCard) return;
+    
+    // Validate that currentCard.id is a valid number
+    if (!currentCard.id || typeof currentCard.id !== 'number') {
+      return;
+    }
+    
     const cardContent = currentCard;
 
     setGeneratingMnemonic(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
       if (!token) return;
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || API_CONSTANTS.DEFAULT_BASE_URL;
       const response = await fetch(`${apiUrl}/api/v1/cards/${cardContent.id}/mnemonic/generate`, {
         method: 'POST',
         headers: {
@@ -462,14 +528,20 @@ export default function ReviewPage() {
 
   async function saveMnemonic() {
     if (!currentCard || !mnemonicContent.trim()) return;
+    
+    // Validate that currentCard.id is a valid number
+    if (!currentCard.id || typeof currentCard.id !== 'number') {
+      return;
+    }
+    
     const cardContent = currentCard;
 
     setSavingMnemonic(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
       if (!token) return;
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || API_CONSTANTS.DEFAULT_BASE_URL;
 
       let response;
       if (mnemonic && mnemonic.id) {
@@ -515,10 +587,10 @@ export default function ReviewPage() {
     }
 
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
       if (!token) return;
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || API_CONSTANTS.DEFAULT_BASE_URL;
       const response = await fetch(`${apiUrl}/api/v1/mnemonics/${mnemonic.id}`, {
         method: 'DELETE',
         headers: {
@@ -538,11 +610,15 @@ export default function ReviewPage() {
   }
 
   async function fetchSimilarCards(cardId: number) {
+    if (!cardId || typeof cardId !== 'number') {
+      return;
+    }
+    
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
       if (!token) return;
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || API_CONSTANTS.DEFAULT_BASE_URL;
       const response = await fetch(`${apiUrl}/api/v1/cards/${cardId}/similar`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -583,7 +659,7 @@ export default function ReviewPage() {
     setKanaCorrect(null);
     setShowFeedback(false);
 
-    setSessionStats(prev => ({
+    setSessionStats((prev: typeof sessionStats) => ({
       ...prev,
       correct: prev.correct - (lastAction.grade === 'good' || lastAction.grade === 'easy' ? 1 : 0),
       incorrect: prev.incorrect - (lastAction.grade === 'again' ? 1 : 0),
@@ -608,6 +684,12 @@ export default function ReviewPage() {
 
   async function handleGrade(grade: 'again' | 'hard' | 'good' | 'easy') {
     if (!queue || !currentCard) return;
+    
+    // Validate that currentCard.id is a valid number
+    if (!currentCard.id || typeof currentCard.id !== 'number') {
+      setError('Invalid card ID');
+      return;
+    }
 
     setSubmitting(true);
     const cardContent = currentCard;
@@ -620,18 +702,22 @@ export default function ReviewPage() {
     });
 
     const wasCorrect = grade === 'good' || grade === 'easy';
-    setSessionStats(prev => ({
-      ...prev,
-      correct: prev.correct + (wasCorrect ? 1 : 0),
-      incorrect: prev.incorrect + (grade === 'again' ? 1 : 0),
-      total: prev.total + 1,
-      cardTimes: [...prev.cardTimes, cardTime],
-    }));
+    setSessionStats((prev: typeof sessionStats) => {
+      const newStats = {
+        ...prev,
+        correct: prev.correct + (wasCorrect ? 1 : 0),
+        incorrect: prev.incorrect + (grade === 'again' ? 1 : 0),
+        total: prev.total + 1,
+        cardTimes: [...prev.cardTimes, cardTime],
+      };
+      return newStats;
+    });
 
     triggerHaptic('medium');
 
     try {
-      await api.post(`/api/v1/review/${currentCard.id}`, {
+      const cardId = String(currentCard.id);
+      await api.post(`/api/v1/review/${cardId}`, {
         grade: grade,
         was_correct: wasCorrect,
         response_time_ms: cardTime * 1000,
@@ -651,7 +737,19 @@ export default function ReviewPage() {
 
         // Shuffle modalities
         const shuffled = [...possibleModalities].sort(() => 0.5 - Math.random());
-        let requiredModalities = grade === 'again' ? shuffled : [shuffled[0]];
+        
+        // Determine required modalities based on grade
+        let requiredModalities: ('reading' | 'meaning' | 'kanji')[];
+        if (grade === 'again') {
+          // Again (1): All modalities
+          requiredModalities = shuffled;
+        } else if (grade === 'hard') {
+          // Hard (2): 2 modalities
+          requiredModalities = shuffled.slice(0, 2);
+        } else {
+          // Good (3) and Easy (4): 1 modality
+          requiredModalities = [shuffled[0]];
+        }
 
         setActiveFlashPractice({
           card: cardContent,
@@ -687,6 +785,12 @@ export default function ReviewPage() {
 
   async function confirmMarkAsMastered() {
     if (!queue || !currentCard) return;
+    
+    // Validate that currentCard.id is a valid number
+    if (!currentCard.id || typeof currentCard.id !== 'number') {
+      setError('Invalid card ID');
+      return;
+    }
 
     setShowMasterConfirm(false);
 
@@ -694,7 +798,8 @@ export default function ReviewPage() {
     const cardContent = currentCard;
 
     try {
-      await api.post(`/api/v1/cards/${currentCard.id}/master`, {});
+      const cardId = String(currentCard.id);
+      await api.post(`/api/v1/cards/${cardId}/master`, {});
 
       // Remove card from queue
       const nextQueue = queue.slice(1);
@@ -712,7 +817,7 @@ export default function ReviewPage() {
       }
 
       // Update session stats
-      setSessionStats(prev => ({
+      setSessionStats((prev: typeof sessionStats) => ({
         ...prev,
         total: prev.total + 1,
         correct: prev.correct + 1,
@@ -726,14 +831,55 @@ export default function ReviewPage() {
 
   // --- Effects ---
 
+  // Persist session stats to sessionStorage whenever they change
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
+    if (typeof window === 'undefined') return;
+    const currentSaved = sessionStorage.getItem('reviewSessionStats');
+    const currentValue = JSON.stringify(sessionStats);
+    
+    // Only save if different from what's already saved
+    if (currentSaved !== currentValue) {
+      sessionStorage.setItem('reviewSessionStats', currentValue);
+    }
+  }, [sessionStats]);
+
+  // Persist queue to sessionStorage whenever it changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (queue) {
+      const currentSaved = sessionStorage.getItem('reviewQueue');
+      const currentValue = JSON.stringify(queue);
+      
+      // Only save if different from what's already saved
+      if (currentSaved !== currentValue) {
+        sessionStorage.setItem('reviewQueue', currentValue);
+      }
+    }
+  }, [queue]);
+
+  // Persist current card to sessionStorage whenever it changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (currentCard) {
+      const currentSaved = sessionStorage.getItem('reviewCurrentCard');
+      const currentValue = JSON.stringify(currentCard);
+      
+      // Only save if different from what's already saved
+      if (currentSaved !== currentValue) {
+        sessionStorage.setItem('reviewCurrentCard', currentValue);
+      }
+    }
+  }, [currentCard]);
+
+  // Initial fetch - only fetch if no saved session exists
+  useEffect(() => {
+    const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
     if (!token) {
-      router.push('/login');
+      router.push(ROUTES.AUTH.LOGIN);
       return;
     }
 
-    const userData = localStorage.getItem('user');
+    const userData = localStorage.getItem(AUTH_CONSTANTS.USER_KEY);
     if (userData) {
       try {
         setUser(JSON.parse(userData));
@@ -741,12 +887,24 @@ export default function ReviewPage() {
       }
     }
 
+    // Check if we have a saved session in storage
+    const savedQueue = sessionStorage.getItem('reviewQueue');
+    const savedCurrentCard = sessionStorage.getItem('reviewCurrentCard');
+    
+    // If we have saved session data, don't fetch - the restore effect already handled it
+    if (savedQueue && savedCurrentCard) {
+      setLoading(false);
+      return;
+    }
     const fetchQueue = async () => {
       try {
         setLoading(true);
         setError('');
         // Increase limit to 20 for "continue" batches
-        const data = await api.get<{ cards: CardContent[] }>('/api/v1/review/queue?limit=20');
+        const url = deckId 
+          ? `/api/v1/review/queue?limit=20&deck_id=${deckId}`
+          : '/api/v1/review/queue?limit=20';
+        const data = await api.get<{ cards: CardContent[] }>(url);
 
         const items = data.cards || [];
         setQueue(items);
@@ -766,20 +924,38 @@ export default function ReviewPage() {
 
     // expose fetchQueue to be called later
     (window as any).refreshReviewQueue = fetchQueue;
-  }, [router]);
+  }, [router, deckId]);
 
   // Re-fetch queue handler
   const handleContinueSession = async () => {
     try {
       setLoading(true);
       setError('');
-      const data = await api.get<{ cards: CardContent[] }>('/api/v1/review/queue?limit=20');
+      const url = deckId 
+        ? `/api/v1/review/queue?limit=20&deck_id=${deckId}`
+        : '/api/v1/review/queue?limit=20';
+      const data = await api.get<{ cards: CardContent[] }>(url);
 
       const items = data.cards || [];
       setQueue(items);
       if (items.length > 0) {
         setCurrentCard(items[0]);
       }
+      
+      // Reset quiz state for the new session
+      setShowEndSessionQuiz(false);
+      setQuizQuestions([]);
+      setQuizCurrentIndex(0);
+      setMissedCardsForQuiz([]);
+      
+      // Reset session stats for the new session
+      setSessionStats({
+        correct: 0,
+        incorrect: 0,
+        total: 0,
+        cardTimes: [],
+        startTime: Date.now(),
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -807,11 +983,11 @@ export default function ReviewPage() {
 
   useEffect(() => {
     const fetchStreak = async () => {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
       if (!token) return;
 
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || API_CONSTANTS.DEFAULT_BASE_URL;
         const response = await fetch(`${apiUrl}/api/v1/dashboard`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -1016,6 +1192,14 @@ export default function ReviewPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showAnswer, submitting, lastAction, queue]);
 
+  // Auto-focus flash practice input when modality changes
+  useEffect(() => {
+    if (activeFlashPractice && flashPracticeInputRef.current) {
+      setTimeout(() => {
+        flashPracticeInputRef.current?.focus();
+      }, 0);
+    }
+  }, [activeFlashPractice?.currentModality]);
 
   // --- Render ---
 
@@ -1184,7 +1368,12 @@ export default function ReviewPage() {
               </button>
 
               <button
-                onClick={() => router.push('/dashboard')}
+                onClick={() => {
+                  sessionStorage.removeItem('reviewSessionStats');
+                  sessionStorage.removeItem('reviewQueue');
+                  sessionStorage.removeItem('reviewCurrentCard');
+                  router.push('/dashboard');
+                }}
                 className="w-full py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-xl font-medium transition-colors cursor-pointer"
               >
                 Back to Dashboard
@@ -1220,9 +1409,9 @@ export default function ReviewPage() {
           <ProgressBar progress={progress} />
         </div>
 
-        {/* Session Stats Card (Mobile) */}
+        {/* Session Stats Card */}
         {sessionStats.total > 0 && (
-          <div className="px-4 mb-4 md:hidden">
+          <div className="px-4 mb-4">
             <Card className="p-3 dark:bg-gray-800 dark:border-gray-700">
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-4">
@@ -1247,7 +1436,12 @@ export default function ReviewPage() {
                 </div>
                 {/* End Session Button */}
                 <button
-                  onClick={() => router.push('/dashboard')}
+                  onClick={() => {
+                    sessionStorage.removeItem('reviewSessionStats');
+                    sessionStorage.removeItem('reviewQueue');
+                    sessionStorage.removeItem('reviewCurrentCard');
+                    router.push('/dashboard');
+                  }}
                   className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                   title="End session"
                 >

@@ -7,6 +7,10 @@ import Card from '@/components/ui/card';
 import { api } from '@/lib/api';
 import PageContainer from '@/components/ui/page-container';
 import PageHeader from '@/components/ui/page-header';
+import { AUTH_CONSTANTS } from '@/constants/auth';
+import { ROUTES } from '@/constants/routes';
+import { API_CONSTANTS } from '@/constants/api';
+import { MESSAGES } from '@/constants/messages';
 
 interface DashboardData {
   dueToday: number;
@@ -31,18 +35,18 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
     if (!token) {
-      router.push('/login');
+      router.push(ROUTES.AUTH.LOGIN);
       return;
     }
 
     const fetchDashboard = async () => {
       try {
-        const dashboardData = await api.get<DashboardData>('/api/v1/dashboard');
+        const dashboardData = await api.get<DashboardData>(API_CONSTANTS.ENDPOINTS.DASHBOARD);
         setData(dashboardData);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setError(err instanceof Error ? err.message : MESSAGES.ERRORS.GENERIC);
       } finally {
         setLoading(false);
       }

@@ -7,6 +7,8 @@ import Card from '@/components/ui/card';
 import { api } from '@/lib/api';
 import PageContainer from '@/components/ui/page-container';
 import PageHeader from '@/components/ui/page-header';
+import { AUTH_CONSTANTS } from '@/constants/auth';
+import { ROUTES } from '@/constants/routes';
 
 interface CardData {
   id: number;
@@ -33,9 +35,9 @@ export default function MasteredCardsPage() {
   const [unmasteringId, setUnmasteringId] = useState<number | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
     if (!token) {
-      router.push('/login');
+      router.push(ROUTES.AUTH.LOGIN);
       return;
     }
 

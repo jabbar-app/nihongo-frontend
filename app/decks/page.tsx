@@ -12,6 +12,8 @@ import PageHeader from '@/components/ui/page-header';
 import LoadingScreen from '@/components/ui/loading-screen';
 import EmptyState from '@/components/ui/empty-state';
 import ErrorScreen from '@/components/ui/error-screen';
+import { AUTH_CONSTANTS } from '@/constants/auth';
+import { ROUTES } from '@/constants/routes';
 
 interface Deck {
   id: number;
@@ -40,14 +42,14 @@ export default function DecksPage() {
   const [currentUserEmail, setCurrentUserEmail] = useState<string>('');
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
     if (!token) {
-      router.push('/login');
+      router.push(ROUTES.AUTH.LOGIN);
       return;
     }
 
     try {
-      const userStr = localStorage.getItem('user');
+      const userStr = localStorage.getItem(AUTH_CONSTANTS.USER_KEY);
       if (userStr) {
         const user = JSON.parse(userStr);
         setCurrentUserEmail(user.email || '');

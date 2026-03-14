@@ -1,10 +1,25 @@
 import { ReactNode, HTMLAttributes, forwardRef } from 'react';
+import React from 'react';
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
     children: ReactNode;
     padding?: 'sm' | 'md' | 'lg';
 }
 
+/**
+ * Card Component
+ * 
+ * A reusable card container with customizable padding.
+ * Memoized to prevent unnecessary re-renders.
+ * 
+ * @example
+ * ```tsx
+ * <Card padding="md">
+ *   <h3>Card Title</h3>
+ *   <p>Card content</p>
+ * </Card>
+ * ```
+ */
 const Card = forwardRef<HTMLDivElement, CardProps>(({ children, className = '', padding = 'md', ...props }, ref) => {
     const paddings = {
         sm: 'p-4',
@@ -21,4 +36,4 @@ const Card = forwardRef<HTMLDivElement, CardProps>(({ children, className = '', 
 
 Card.displayName = 'Card';
 
-export default Card;
+export default React.memo(Card);

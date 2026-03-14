@@ -1,58 +1,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-
-// Type definitions for Web Speech API
-interface SpeechRecognitionEvent extends Event {
-    results: SpeechRecognitionResultList;
-    resultIndex: number;
-}
-
-interface SpeechRecognitionResultList {
-    length: number;
-    item(index: number): SpeechRecognitionResult;
-    [index: number]: SpeechRecognitionResult;
-}
-
-interface SpeechRecognitionResult {
-    isFinal: boolean;
-    length: number;
-    item(index: number): SpeechRecognitionAlternative;
-    [index: number]: SpeechRecognitionAlternative;
-}
-
-interface SpeechRecognitionAlternative {
-    transcript: string;
-    confidence: number;
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-    error: string;
-    message: string;
-}
-
-interface SpeechRecognition extends EventTarget {
-    continuous: boolean;
-    interimResults: boolean;
-    lang: string;
-    start(): void;
-    stop(): void;
-    abort(): void;
-    onresult: (event: SpeechRecognitionEvent) => void;
-    onerror: (event: SpeechRecognitionErrorEvent) => void;
-    onend: () => void;
-}
-
-// Window interface extension
-declare global {
-    interface Window {
-        SpeechRecognition: {
-            new(): SpeechRecognition;
-        };
-        webkitSpeechRecognition: {
-            new(): SpeechRecognition;
-        };
-    }
-}
+import type {
+    SpeechRecognition,
+    SpeechRecognitionEvent,
+    SpeechRecognitionErrorEvent,
+} from '@/types/browser/speech-recognition';
 
 interface UseSpeechRecognitionReturn {
     isListening: boolean;
@@ -77,10 +29,11 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (SpeechRecognition) {
                 setIsSupported(true);
-                recognitionRef.current = new SpeechRecognition();
-                recognitionRef.current.continuous = true; // Keep listening until stopped
-                recognitionRef.current.interimResults = true; // Show results as they are spoken
-                recognitionRef.current.lang = 'ja-JP'; // Set Japanese as default
+                const recognition = new SpeechRecognition();
+                recognition.continuous = true; // Keep listening until stopped
+                recognition.interimResults = true; // Show results as they are spoken
+                recognition.lang = 'ja-JP'; // Set Japanese as default
+                recognitionRef.current = recognition;
             }
         }
     }, []);

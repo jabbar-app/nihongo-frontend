@@ -7,6 +7,8 @@ import StatsSection from "@/sections/stats-section";
 import FeaturesSection from "@/sections/features-section";
 import FaqSection from "@/sections/faq-section";
 import TestimonialSection from "@/sections/testimonial-section";
+import { AUTH_CONSTANTS } from '@/constants/auth';
+import { ROUTES } from '@/constants/routes';
 
 export default function Page() {
     const router = useRouter();
@@ -14,11 +16,11 @@ export default function Page() {
 
     useEffect(() => {
         // Check for authentication token
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
 
         if (token) {
             // User is logged in, redirect to dashboard
-            router.push('/dashboard');
+            router.push(ROUTES.DASHBOARD);
         } else {
             // User is not logged in, show landing page
             setIsLoading(false);

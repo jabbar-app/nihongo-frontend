@@ -1,7 +1,8 @@
 'use client';
 
-import { XIcon, AlertCircleIcon } from 'lucide-react';
+import { AlertCircleIcon } from 'lucide-react';
 import Button from '@/components/ui/button';
+import Modal from '@/components/ui/modal';
 
 interface ConfirmModalProps {
     isOpen: boolean;
@@ -14,6 +15,24 @@ interface ConfirmModalProps {
     variant?: 'danger' | 'warning' | 'info';
 }
 
+/**
+ * ConfirmModal Component
+ * 
+ * A specialized modal for confirmation dialogs with variant styling.
+ * Uses the base Modal component for consistent structure.
+ * 
+ * @example
+ * ```tsx
+ * <ConfirmModal
+ *   isOpen={isOpen}
+ *   title="Delete Item"
+ *   message="Are you sure you want to delete this item?"
+ *   variant="danger"
+ *   onConfirm={handleDelete}
+ *   onCancel={handleCancel}
+ * />
+ * ```
+ */
 export default function ConfirmModal({
     isOpen,
     title,
@@ -24,8 +43,6 @@ export default function ConfirmModal({
     onCancel,
     variant = 'warning',
 }: ConfirmModalProps) {
-    if (!isOpen) return null;
-
     const variantStyles = {
         danger: {
             icon: 'text-red-600 dark:text-red-400',
@@ -50,29 +67,13 @@ export default function ConfirmModal({
     const styles = variantStyles[variant];
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md">
-                {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h2>
-                    <button
-                        onClick={onCancel}
-                        className="p-2 -mr-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors cursor-pointer"
-                    >
-                        <XIcon className="w-5 h-5" />
-                    </button>
-                </div>
-
-                {/* Content */}
-                <div className="p-6">
-                    <div className={`flex gap-4 p-4 rounded-xl ${styles.bg} border ${styles.border}`}>
-                        <AlertCircleIcon className={`w-6 h-6 flex-shrink-0 ${styles.icon}`} />
-                        <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{message}</p>
-                    </div>
-                </div>
-
-                {/* Footer */}
-                <div className="p-6 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50 rounded-b-2xl">
+        <Modal
+            isOpen={isOpen}
+            onClose={onCancel}
+            title={title}
+            size="md"
+            footer={
+                <div className="flex justify-end gap-3">
                     <Button type="button" variant="secondary" onClick={onCancel} className="cursor-pointer">
                         {cancelText}
                     </Button>
@@ -84,7 +85,12 @@ export default function ConfirmModal({
                         {confirmText}
                     </Button>
                 </div>
+            }
+        >
+            <div className={`flex gap-4 p-4 rounded-xl ${styles.bg} border ${styles.border}`}>
+                <AlertCircleIcon className={`w-6 h-6 flex-shrink-0 ${styles.icon}`} />
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{message}</p>
             </div>
-        </div>
+        </Modal>
     );
 }

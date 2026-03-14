@@ -9,6 +9,9 @@ import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Button from "@/components/ui/button";
 import ThemeToggle from "@/components/theme-toggle";
+import { AUTH_CONSTANTS } from "@/constants/auth";
+import { ROUTES } from "@/constants/routes";
+import { toJapaneseNumeral } from "@/lib/japanese-numerals";
 
 import { useHeader } from "@/components/header-context";
 
@@ -47,7 +50,7 @@ export default function Navbar() {
 
   // Hide default nav on auth pages
   useEffect(() => {
-    if (pathname === '/login' || pathname === '/register') {
+    if (pathname === ROUTES.AUTH.LOGIN || pathname === ROUTES.AUTH.REGISTER) {
       setShowDefaultNav(false);
     } else {
       setShowDefaultNav(true);
@@ -62,8 +65,8 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    const userData = localStorage.getItem('user');
+    const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
+    const userData = localStorage.getItem(AUTH_CONSTANTS.USER_KEY);
 
     setIsLoggedIn(!!token);
     if (userData) {
@@ -75,10 +78,10 @@ export default function Navbar() {
     }
 
     const handleStorageChange = () => {
-      const newToken = localStorage.getItem('auth_token');
+      const newToken = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
       setIsLoggedIn(!!newToken);
       if (newToken) {
-        const newUserData = localStorage.getItem('user');
+        const newUserData = localStorage.getItem(AUTH_CONSTANTS.USER_KEY);
         if (newUserData) {
           try {
             setUser(JSON.parse(newUserData));
@@ -111,11 +114,11 @@ export default function Navbar() {
   }, [isProfileDropdownOpen]);
 
   const handleLogout = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
+    localStorage.removeItem(AUTH_CONSTANTS.TOKEN_KEY);
+    localStorage.removeItem(AUTH_CONSTANTS.USER_KEY);
     setIsLoggedIn(false);
     setUser(null);
-    router.push('/');
+    router.push(ROUTES.HOME);
   };
 
   const getStartStudyingLink = () => {
@@ -495,7 +498,7 @@ export default function Navbar() {
               </div>
               <div>
                 <div className="font-semibold text-sm text-gray-900 dark:text-white">{user?.name || 'User'}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Level {user?.rank || '1'}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">レベル{toJapaneseNumeral(parseInt(user?.rank || '1'))}</div>
               </div>
             </div>
             <button

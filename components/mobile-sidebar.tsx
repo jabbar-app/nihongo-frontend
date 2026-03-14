@@ -3,6 +3,9 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { XIcon, HomeIcon, BookOpenIcon, LibraryIcon, UserIcon, LogOutIcon, SettingsIcon, CalendarIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { AUTH_CONSTANTS } from '@/constants/auth';
+import { ROUTES } from '@/constants/routes';
+import { toJapaneseNumeral } from '@/lib/japanese-numerals';
 
 interface MobileSidebarProps {
   isOpen: boolean;
@@ -16,16 +19,16 @@ export default function MobileSidebar({ isOpen, onClose, user }: MobileSidebarPr
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
     setIsLoggedIn(!!token);
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
+    localStorage.removeItem(AUTH_CONSTANTS.TOKEN_KEY);
+    localStorage.removeItem(AUTH_CONSTANTS.USER_KEY);
     setIsLoggedIn(false);
     onClose();
-    router.push('/');
+    router.push(ROUTES.HOME);
   };
 
   const handleNavigation = (path: string) => {
@@ -36,10 +39,10 @@ export default function MobileSidebar({ isOpen, onClose, user }: MobileSidebarPr
   const isActive = (path: string) => pathname === path;
 
   const navItems = [
-    { icon: HomeIcon, label: 'Dashboard', path: '/dashboard' },
-    { icon: BookOpenIcon, label: 'Review', path: '/review' },
-    { icon: LibraryIcon, label: 'Decks', path: '/decks' },
-    { icon: CalendarIcon, label: 'History', path: '/history' },
+    { icon: HomeIcon, label: 'Dashboard', path: ROUTES.DASHBOARD },
+    { icon: BookOpenIcon, label: 'Review', path: ROUTES.REVIEW },
+    { icon: LibraryIcon, label: 'Decks', path: ROUTES.DECKS },
+    { icon: CalendarIcon, label: 'History', path: ROUTES.HISTORY },
   ];
 
   return (
@@ -65,7 +68,7 @@ export default function MobileSidebar({ isOpen, onClose, user }: MobileSidebarPr
             </div>
             <div>
               <div className="font-semibold text-sm text-gray-900 dark:text-white">{user?.name || 'User'}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Level {user?.rank || '1'}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">レベル{toJapaneseNumeral(parseInt(user?.rank || '1'))}</div>
             </div>
           </div>
           <button
@@ -101,24 +104,24 @@ export default function MobileSidebar({ isOpen, onClose, user }: MobileSidebarPr
 
           {/* Profile & Settings */}
           <button
-            onClick={() => handleNavigation('/profile')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors mb-2 ${isActive('/profile')
+            onClick={() => handleNavigation(ROUTES.PROFILE)}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors mb-2 ${isActive(ROUTES.PROFILE)
               ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
               : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
           >
-            <UserIcon className={`w-5 h-5 ${isActive('/profile') ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400'}`} />
+            <UserIcon className={`w-5 h-5 ${isActive(ROUTES.PROFILE) ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400'}`} />
             <span className="font-medium">Profile</span>
           </button>
 
           <button
-            onClick={() => handleNavigation('/settings')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors mb-2 ${isActive('/settings')
+            onClick={() => handleNavigation(ROUTES.SETTINGS)}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors mb-2 ${isActive(ROUTES.SETTINGS)
               ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'
               : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
           >
-            <SettingsIcon className={`w-5 h-5 ${isActive('/settings') ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400'}`} />
+            <SettingsIcon className={`w-5 h-5 ${isActive(ROUTES.SETTINGS) ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400'}`} />
             <span className="font-medium">Settings</span>
           </button>
 

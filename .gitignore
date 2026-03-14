@@ -49,3 +49,6 @@ public/workbox-*.js.map
 # typescript error logs
 tsc_error*.log
 tsc_output*.txt
+
+# spec implementation documentation
+/spec-implementation-docs/

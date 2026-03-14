@@ -11,6 +11,9 @@ import Input from "@/components/ui/input";
 import Textarea from '@/components/ui/textarea';
 
 import PracticeConversation from '@/components/practice/practice-conversation';
+import { AUTH_CONSTANTS } from '@/constants/auth';
+import { ROUTES } from '@/constants/routes';
+import { API_CONSTANTS } from '@/constants/api';
 
 interface Reading {
   id: number;
@@ -81,13 +84,13 @@ export default function PracticePage() {
 
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
     if (!token) {
-      router.push('/login');
+      router.push(ROUTES.AUTH.LOGIN);
       return;
     }
 
-    const userData = localStorage.getItem('user');
+    const userData = localStorage.getItem(AUTH_CONSTANTS.USER_KEY);
     if (userData) {
       try {
         setUser(JSON.parse(userData));
@@ -103,8 +106,8 @@ export default function PracticePage() {
 
   const fetchReadings = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || API_CONSTANTS.DEFAULT_BASE_URL;
       const response = await fetch(`${apiUrl}/api/v1/readings?type=conversation,article`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -112,10 +115,10 @@ export default function PracticePage() {
         },
       });
 
-      if (response.status === 401) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user');
-        router.push('/login');
+      if (response.status === API_CONSTANTS.STATUS.UNAUTHORIZED) {
+        localStorage.removeItem(AUTH_CONSTANTS.TOKEN_KEY);
+        localStorage.removeItem(AUTH_CONSTANTS.USER_KEY);
+        router.push(ROUTES.AUTH.LOGIN);
         return;
       }
 
@@ -167,10 +170,10 @@ export default function PracticePage() {
     }
     setSaveLoading(true);
     setMaterialError('');
-    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-    const token = localStorage.getItem('auth_token');
+    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || API_CONSTANTS.DEFAULT_BASE_URL;
+    const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
     if (!token) {
-      router.push('/login');
+      router.push(ROUTES.AUTH.LOGIN);
       return;
     }
     try {
@@ -235,10 +238,10 @@ export default function PracticePage() {
     if (!deleteConfirmReading) return;
     const reading = deleteConfirmReading;
     setDeleteLoadingId(reading.id);
-    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-    const token = localStorage.getItem('auth_token');
+    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || API_CONSTANTS.DEFAULT_BASE_URL;
+    const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
     if (!token) {
-      router.push('/login');
+      router.push(ROUTES.AUTH.LOGIN);
       return;
     }
     try {
@@ -246,10 +249,10 @@ export default function PracticePage() {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
       });
-      if (response.status === 401) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user');
-        router.push('/login');
+      if (response.status === API_CONSTANTS.STATUS.UNAUTHORIZED) {
+        localStorage.removeItem(AUTH_CONSTANTS.TOKEN_KEY);
+        localStorage.removeItem(AUTH_CONSTANTS.USER_KEY);
+        router.push(ROUTES.AUTH.LOGIN);
         return;
       }
       if (!response.ok) throw new Error('Failed to delete');
@@ -266,13 +269,13 @@ export default function PracticePage() {
     try {
       setError('');
       setStartingSession(true);
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
       if (!token) {
-        router.push('/login');
+        router.push(ROUTES.AUTH.LOGIN);
         return;
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || API_CONSTANTS.DEFAULT_BASE_URL;
 
       const payload: any = {};
       if (reading) {
@@ -293,10 +296,10 @@ export default function PracticePage() {
         body: JSON.stringify(payload),
       });
 
-      if (response.status === 401) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user');
-        router.push('/login');
+      if (response.status === API_CONSTANTS.STATUS.UNAUTHORIZED) {
+        localStorage.removeItem(AUTH_CONSTANTS.TOKEN_KEY);
+        localStorage.removeItem(AUTH_CONSTANTS.USER_KEY);
+        router.push(ROUTES.AUTH.LOGIN);
         return;
       }
 

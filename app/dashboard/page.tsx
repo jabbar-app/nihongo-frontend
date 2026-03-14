@@ -7,8 +7,12 @@ import { useHeader } from '@/components/header-context';
 import ThemeToggle from '@/components/theme-toggle';
 import { useTheme } from '@/lib/theme-context';
 import { api } from '@/lib/api';
+import { toJapaneseNumeral } from '@/lib/japanese-numerals';
 import DeckCard from '@/components/ui/deck-card';
 import StatsCard from '@/components/ui/stats-card';
+import { AUTH_CONSTANTS } from '@/constants/auth';
+import { ROUTES } from '@/constants/routes';
+import { API_CONSTANTS } from '@/constants/api';
 
 interface DashboardData {
   dueToday: number;
@@ -99,7 +103,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const dashboardData = await api.get<DashboardData>('/api/v1/dashboard');
+        const dashboardData = await api.get<DashboardData>(API_CONSTANTS.ENDPOINTS.DASHBOARD);
         // Normalize chartData in case API returns snake_case (focus_minutes, etc.)
         if (dashboardData.chartData?.length) {
           dashboardData.chartData = dashboardData.chartData.map((d) => ({
@@ -118,15 +122,15 @@ export default function DashboardPage() {
       }
     };
 
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
     if (!token) {
-      router.push('/login');
+      router.push(ROUTES.AUTH.LOGIN);
       return;
     }
 
     // Load user from local storage immediately to avoid layout shift if possible,
     // though real verification happens via API 401 check inside api.ts
-    const userData = localStorage.getItem('user');
+    const userData = localStorage.getItem(AUTH_CONSTANTS.USER_KEY);
     if (userData) {
       try {
         setUser(JSON.parse(userData));
@@ -286,7 +290,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex-1">
               <div className="font-semibold text-lg text-gray-900 dark:text-white">{user?.name || 'User'}</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Level {rankLevel}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">レベル{toJapaneseNumeral(rankLevel)}</div>
             </div>
             <div className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 px-3 py-1 rounded-full text-sm font-semibold">
               {formatTime(data.timeSpentToday)}

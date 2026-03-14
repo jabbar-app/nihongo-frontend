@@ -8,6 +8,8 @@ import { api } from '@/lib/api';
 import Card from "@/components/ui/card";
 import MobileSidebar from '@/components/mobile-sidebar';
 import { useHeader } from "@/components/header-context";
+import { AUTH_CONSTANTS } from '@/constants/auth';
+import { ROUTES } from '@/constants/routes';
 
 interface Reading {
   id: number;
@@ -86,13 +88,13 @@ export default function PracticeHistoryPage() {
   }, [setHeaderContent, sidebarOpen, isMobile]);
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
     if (!token) {
-      router.push('/login');
+      router.push(ROUTES.AUTH.LOGIN);
       return;
     }
 
-    const userData = localStorage.getItem('user');
+    const userData = localStorage.getItem(AUTH_CONSTANTS.USER_KEY);
     if (userData) {
       try {
         setUser(JSON.parse(userData));

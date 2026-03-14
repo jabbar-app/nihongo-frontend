@@ -3,6 +3,9 @@
 import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
+import { AUTH_CONSTANTS } from '@/constants/auth';
+import { ROUTES } from '@/constants/routes';
+import { API_CONSTANTS } from '@/constants/api';
 
 function CallbackContent() {
     const router = useRouter();
@@ -13,22 +16,22 @@ function CallbackContent() {
 
         if (token) {
             // Store token
-            localStorage.setItem('auth_token', token);
+            localStorage.setItem(AUTH_CONSTANTS.TOKEN_KEY, token);
 
             // Generate user data from token or fetch it
-            api.get('/api/v1/me')
+            api.get(API_CONSTANTS.ENDPOINTS.PROFILE.ME)
                 .then(user => {
-                    localStorage.setItem('user', JSON.stringify(user));
+                    localStorage.setItem(AUTH_CONSTANTS.USER_KEY, JSON.stringify(user));
                     // Trigger storage event for navbar update
                     window.dispatchEvent(new Event('storage'));
-                    router.push('/dashboard');
+                    router.push(ROUTES.DASHBOARD);
                 })
                 .catch(err => {
                     console.error('Failed to fetch user:', err);
-                    router.push('/login?error=auth_failed');
+                    router.push(`${ROUTES.AUTH.LOGIN}?error=auth_failed`);
                 });
         } else {
-            router.push('/login?error=no_token');
+            router.push(`${ROUTES.AUTH.LOGIN}?error=no_token`);
         }
     }, [router, searchParams]);
 

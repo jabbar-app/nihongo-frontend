@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { AUTH_CONSTANTS } from '@/constants/auth';
 
 interface ThemeContextType {
   isDarkMode: boolean;
@@ -10,7 +11,7 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const THEME_STORAGE_KEY = 'darkMode';
+const THEME_STORAGE_KEY = AUTH_CONSTANTS.THEME_KEY;
 
 // Helper function to get initial theme from localStorage (safe for SSR)
 function getInitialTheme(): boolean {
