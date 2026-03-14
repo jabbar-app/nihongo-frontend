@@ -3,7 +3,7 @@
 import { links } from "@/data/links";
 import { ILink } from "@/types";
 import { MenuIcon, XIcon, HomeIcon, BookOpenIcon, LibraryIcon, UserIcon, LogOutIcon, SettingsIcon, CalendarIcon, ChevronDownIcon, FileTextIcon, PanelTopCloseIcon, PanelTopOpenIcon, Maximize2Icon, Minimize2Icon, CheckCircle2Icon, HistoryIcon, TrophyIcon, SparklesIcon, SearchIcon, BookIcon, LayoutDashboard } from "lucide-react";
-import Image from "next/image";
+      {/* Unused import removed */}
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -162,7 +162,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className={`sticky top-0 ${isMenuOpen || isProfileDropdownOpen ? 'z-50' : 'z-20'} w-full px-4 py-2 border-b transition-all duration-300 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${isScrolled ? 'shadow-md' : 'shadow-sm'}`}>
+      <nav className={`sticky top-0 z-50 w-full px-4 py-2 border-b transition-all duration-300 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${isScrolled ? 'shadow-md' : 'shadow-sm'}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
@@ -483,11 +483,11 @@ export default function Navbar() {
         />
       )}
 
-      {/* Menu - Slide in from right, full screen on mobile, fit content on desktop */}
+      {/* Menu - Slide in from left, full screen on mobile, fit content on desktop */}
       <div
-        className={`fixed top-0 right-0 z-55 h-screen bg-white dark:bg-gray-900 shadow-xl transition-transform duration-300 ease-in-out ${isMenuOpen
+        className={`fixed top-0 left-0 z-55 h-screen bg-white dark:bg-gray-900 shadow-xl transition-transform duration-300 ease-in-out ${isMenuOpen
           ? "translate-x-0"
-          : "translate-x-full"
+          : "-translate-x-full"
           } w-full md:w-80`}
       >
         <div className="flex flex-col h-full">
