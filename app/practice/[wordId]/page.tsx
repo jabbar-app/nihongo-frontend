@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeftIcon, RotateCcwIcon, LanguagesIcon, EyeIcon, EyeOffIcon, SendIcon, LoaderIcon, ChevronDownIcon, LightbulbIcon, RefreshCwIcon, PowerIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import Button from '@/components/ui/button';
-import Input from '@/components/ui/input';
 import SmartDictionaryFAB from '@/components/smart-dictionary-fab';
 import { AUTH_CONSTANTS } from '@/constants/auth';
 import { API_CONSTANTS } from '@/constants/api';
@@ -67,6 +66,8 @@ export default function PracticePage() {
 
   useEffect(() => {
     if (!wordId) return;
+    // Scroll to top when page loads
+    window.scrollTo(0, 0);
     fetchCardData();
   }, [wordId]);
 
@@ -338,7 +339,6 @@ export default function PracticePage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
-              console.log('[PracticePage] Back button clicked');
               router.back();
             }}
             className="p-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
