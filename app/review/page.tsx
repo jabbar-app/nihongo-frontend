@@ -10,6 +10,7 @@ import Button from '@/components/ui/button';
 import Input from "@/components/ui/input";
 import ProgressBar from "@/components/ui/progress-bar";
 import MobileSidebar from '@/components/mobile-sidebar';
+import MnemonicImageCanvas from '@/components/MnemonicImageCanvas';
 import CardEditModal from '@/components/card-edit-modal';
 import ConfirmModal from '@/components/confirm-modal';
 import SmartDictionaryFAB from '@/components/smart-dictionary-fab';
@@ -355,23 +356,60 @@ export default function ReviewPage() {
 
   const [mnemonicImageFile, setMnemonicImageFile] = useState<File | null>(null);
   const [mnemonicImagePreview, setMnemonicImagePreview] = useState<string | null>(null);
+  const [mnemonicImageSizeLabel, setMnemonicImageSizeLabel] = useState<string | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
+  /**
+   * Compress the selected image to WebP (quality 0.80) via canvas before upload.
+   * Significantly reduces file size while keeping visual quality.
+   */
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setMnemonicImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setMnemonicImagePreview(reader.result as string);
+    if (!file) return;
+
+    const originalKb = Math.round(file.size / 1024);
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = (ev) => {
+      img.onload = () => {
+        const MAX_DIM = 1280; // cap dimensions to 1280px on longest side
+        let { width, height } = img;
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width >= height) {
+            height = Math.round((height / width) * MAX_DIM);
+            width = MAX_DIM;
+          } else {
+            width = Math.round((width / height) * MAX_DIM);
+            height = MAX_DIM;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          if (!blob) return;
+          const compressedKb = Math.round(blob.size / 1024);
+          const webpFile = new File([blob], file.name.replace(/\.[^.]+$/, '.webp'), { type: 'image/webp' });
+          setMnemonicImageFile(webpFile);
+          setMnemonicImagePreview(URL.createObjectURL(blob));
+          setMnemonicImageSizeLabel(`${originalKb} KB → ${compressedKb} KB (WebP)`);
+        }, 'image/webp', 0.80);
       };
-      reader.readAsDataURL(file);
-    }
+      img.src = ev.target?.result as string;
+    };
+    reader.readAsDataURL(file);
   };
 
   const clearImage = () => {
+    if (mnemonicImagePreview) URL.revokeObjectURL(mnemonicImagePreview);
     setMnemonicImageFile(null);
     setMnemonicImagePreview(null);
+    setMnemonicImageSizeLabel(null);
     if (imageInputRef.current) imageInputRef.current.value = '';
   };
 
@@ -1962,6 +2000,11 @@ export default function ReviewPage() {
                                 accept="image/*"
                                 onChange={handleImageChange}
                               />
+                              {mnemonicImageSizeLabel && (
+                                <div className="text-xs text-teal-600 dark:text-teal-400 font-medium">
+                                  ✓ Compressed: {mnemonicImageSizeLabel}
+                                </div>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => imageInputRef.current?.click()}
@@ -1977,13 +2020,12 @@ export default function ReviewPage() {
                         </div>
                       ) : (
                         <div className="space-y-3">
-                          {mnemonic?.image_url && (
-                             <img
-                                src={mnemonic.image_url}
-                                alt="Mnemonic illustration"
-                                className="w-full h-auto max-h-64 rounded-xl object-contain border border-gray-100 dark:border-gray-700 shadow-sm bg-black/5"
-                                loading="lazy"
-                              />
+                          {mnemonic?.id && mnemonic?.image_url && (
+                            <MnemonicImageCanvas
+                              mnemonicId={mnemonic.id}
+                              className="w-full"
+                              alt="Mnemonic illustration"
+                            />
                           )}
                           <div className={`text-sm text-gray-700 dark:text-gray-300 italic border-l-4 border-teal-500 pl-3 ${!mnemonic?.content && 'py-2 opacity-50'}`}>
                             {mnemonic?.content || (
@@ -2170,11 +2212,11 @@ export default function ReviewPage() {
             </p>
 
             <div className="space-y-4 mb-8">
-               {activeMnemonicOverlay.mnemonic.image_url && (
-                  <img
-                    src={activeMnemonicOverlay.mnemonic.image_url}
-                    alt="Mnemonic hint"
-                    className="w-full rounded-2xl object-contain max-h-64 border border-gray-100 dark:border-gray-700 bg-black/5"
+               {activeMnemonicOverlay.mnemonic.id && activeMnemonicOverlay.mnemonic.image_url && (
+                  <MnemonicImageCanvas
+                    mnemonicId={activeMnemonicOverlay.mnemonic.id}
+                    className="w-full mb-2"
+                    alt="Mnemonic reminder"
                   />
                )}
                {activeMnemonicOverlay.mnemonic.content && (
