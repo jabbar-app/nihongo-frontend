@@ -341,6 +341,39 @@ export default function ReviewPage() {
   const [reviewStreak, setReviewStreak] = useState(0);
   const [masteringCard, setMasteringCard] = useState(false);
   const [showMasterConfirm, setShowMasterConfirm] = useState(false);
+  
+  const [activeMnemonicOverlay, setActiveMnemonicOverlay] = useState<{
+    card: CardContent;
+    mnemonic: any;
+    currentMode: 'pre_flash' | 'post_flash';
+    originalGrade: 'again' | 'hard';
+    flashPracticeData?: {
+      remainingModalities: ('reading' | 'meaning' | 'kanji')[];
+      currentModality: 'reading' | 'meaning' | 'kanji';
+    };
+  } | null>(null);
+
+  const [mnemonicImageFile, setMnemonicImageFile] = useState<File | null>(null);
+  const [mnemonicImagePreview, setMnemonicImagePreview] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setMnemonicImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setMnemonicImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const clearImage = () => {
+    setMnemonicImageFile(null);
+    setMnemonicImagePreview(null);
+    if (imageInputRef.current) imageInputRef.current.value = '';
+  };
 
   // --- Helper Functions (Hoisted) ---
 
@@ -414,14 +447,25 @@ export default function ReviewPage() {
             flashPracticeInputRef.current?.focus();
           }, 50);
         } else {
-          // Finished flash practice! Advance queue.
-          setActiveFlashPractice(null);
-          
-          const nextQueue = queue ? queue.slice(1) : [];
-          setQueue(nextQueue);
-          if (nextQueue.length > 0) {
-            setCurrentCard(nextQueue[0]);
-            triggerHaptic('light');
+          // Finished flash practice! 
+          // If grade was 'again', show mnemonic one more time BEFORE advancing queue
+          if (activeFlashPractice.card.id === activeMnemonicOverlay?.card.id && activeMnemonicOverlay?.originalGrade === 'again' && mnemonic && mnemonic.image_url) {
+             setActiveFlashPractice(null);
+             setActiveMnemonicOverlay({
+               ...activeMnemonicOverlay,
+               currentMode: 'post_flash',
+               flashPracticeData: undefined
+             });
+          } else {
+            setActiveFlashPractice(null);
+            setActiveMnemonicOverlay(null);
+            
+            const nextQueue = queue ? queue.slice(1) : [];
+            setQueue(nextQueue);
+            if (nextQueue.length > 0) {
+              setCurrentCard(nextQueue[0]);
+              triggerHaptic('light');
+            }
           }
         }
       } else {
@@ -449,6 +493,27 @@ export default function ReviewPage() {
       handleAnswerCheck();
     }
   }
+
+  const handleMnemonicOverlayContinue = () => {
+    if (!activeMnemonicOverlay) return;
+
+    if (activeMnemonicOverlay.currentMode === 'pre_flash' && activeMnemonicOverlay.flashPracticeData) {
+      setActiveFlashPractice({
+        card: activeMnemonicOverlay.card,
+        ...activeMnemonicOverlay.flashPracticeData
+      });
+      // Keep overlay in state but hidden? Better to just transition.
+    } else {
+      // post_flash or no data
+      const nextQueue = queue ? queue.slice(1) : [];
+      setQueue(nextQueue);
+      if (nextQueue.length > 0) {
+        setCurrentCard(nextQueue[0]);
+        triggerHaptic('light');
+      }
+    }
+    setActiveMnemonicOverlay(null);
+  };
 
   const playAudio = (url: string) => {
     const audio = new Audio(url);
@@ -517,9 +582,9 @@ export default function ReviewPage() {
 
       if (response.ok) {
         const data = await response.json();
+        // Return only text suggestions - let user pick or edit
         if (data.mnemonics && data.mnemonics.length > 0) {
-          const generatedMnemonic = data.mnemonics[0];
-          setMnemonicContent(generatedMnemonic);
+          setMnemonicContent(data.mnemonics[0]);
           setEditingMnemonic(true);
         }
       }
@@ -547,26 +612,33 @@ export default function ReviewPage() {
 
       const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || API_CONSTANTS.DEFAULT_BASE_URL;
 
+      const formData = new FormData();
+      formData.append('content', mnemonicContent.trim());
+      if (mnemonicImageFile) {
+        formData.append('image', mnemonicImageFile);
+      }
+
       let response;
       if (mnemonic && mnemonic.id) {
+        // Laravel spoof PUT for multipart/form-data
+        formData.append('_method', 'PUT');
         response = await fetch(`${apiUrl}/api/v1/mnemonics/${mnemonic.id}`, {
-          method: 'PUT',
+          method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
-          body: JSON.stringify({ content: mnemonicContent.trim() }),
+          body: formData,
         });
       } else {
+        formData.append('type', 'custom');
         response = await fetch(`${apiUrl}/api/v1/cards/${cardContent.id}/mnemonic`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
-          body: JSON.stringify({ content: mnemonicContent.trim(), type: 'custom' }),
+          body: formData,
         });
       }
 
@@ -574,6 +646,7 @@ export default function ReviewPage() {
         const data = await response.json();
         setMnemonic(data);
         setEditingMnemonic(false);
+        clearImage();
         fetchMnemonic(cardContent.id);
       }
     } catch (err) {
@@ -755,11 +828,26 @@ export default function ReviewPage() {
           requiredModalities = [shuffled[0]];
         }
 
-        setActiveFlashPractice({
-          card: cardContent,
+        const flashData = {
           remainingModalities: requiredModalities,
           currentModality: requiredModalities[0]
-        });
+        };
+
+        // If card has a mnemonic with an image, show it BEFORE flash practice
+        if (mnemonic && mnemonic.image_url) {
+          setActiveMnemonicOverlay({
+            card: cardContent,
+            mnemonic: mnemonic,
+            currentMode: 'pre_flash',
+            originalGrade: grade,
+            flashPracticeData: flashData
+          });
+        } else {
+          setActiveFlashPractice({
+            card: cardContent,
+            ...flashData
+          });
+        }
         
         // We do NOT immediately advance the queue. 
         // We wait for flash practice to finish before `setQueue(nextQueue)`
@@ -1786,26 +1874,24 @@ export default function ReviewPage() {
                                   <SparklesIcon className="w-4 h-4 text-gray-500" />
                                 )}
                               </button>
+                              <button
+                                onClick={() => {
+                                  setEditingMnemonic(true);
+                                  setMnemonicContent(mnemonic?.content || '');
+                                }}
+                                className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                                title={mnemonic ? "Edit" : "Create manually"}
+                              >
+                                {mnemonic ? <EditIcon className="w-4 h-4 text-gray-500" /> : <PencilIcon className="w-4 h-4 text-gray-500" />}
+                              </button>
                               {mnemonic && (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      setEditingMnemonic(true);
-                                      setMnemonicContent(mnemonic.content || '');
-                                    }}
-                                    className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-                                    title="Edit"
-                                  >
-                                    <EditIcon className="w-4 h-4 text-gray-500" />
-                                  </button>
-                                  <button
-                                    onClick={deleteMnemonic}
-                                    className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
-                                    title="Delete"
-                                  >
-                                    <TrashIcon className="w-4 h-4 text-red-500" />
-                                  </button>
-                                </>
+                                <button
+                                  onClick={deleteMnemonic}
+                                  className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+                                  title="Delete"
+                                >
+                                  <TrashIcon className="w-4 h-4 text-red-500" />
+                                </button>
                               )}
                             </>
                           )}
@@ -1841,16 +1927,74 @@ export default function ReviewPage() {
                         </div>
                       </div>
                       {editingMnemonic ? (
-                        <textarea
-                          value={mnemonicContent}
-                          onChange={(e) => setMnemonicContent(e.target.value)}
-                          className="w-full text-sm p-3 rounded-lg border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white resize-y min-h-[80px] focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
-                          placeholder="Type a mnemonic to help you remember..."
-                          autoFocus
-                        />
+                        <div className="space-y-3">
+                          <textarea
+                            value={mnemonicContent}
+                            onChange={(e) => setMnemonicContent(e.target.value)}
+                            className="w-full text-sm p-3 rounded-lg border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white resize-y min-h-[80px] focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
+                            placeholder="Type a mnemonic to help you remember..."
+                            autoFocus
+                          />
+                          
+                          {user && (user.is_admin || user.isAdmin || user.role === 'admin') && (
+                            <div className="pt-2 border-t border-gray-100 dark:border-gray-750">
+                              <div className="text-xs font-semibold text-gray-500 mb-2">Illustration (Admin)</div>
+                              {(mnemonicImagePreview || mnemonic?.image_url) && (
+                                <div className="relative w-full aspect-video max-h-48 mb-3 group">
+                                  <img 
+                                    src={mnemonicImagePreview || mnemonic.image_url} 
+                                    className="w-full h-full object-contain rounded-lg border border-gray-200 dark:border-gray-700 bg-black/5" 
+                                    alt="Preview"
+                                  />
+                                  <button
+                                    onClick={(e) => { e.preventDefault(); clearImage(); }}
+                                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                                    title="Remove image"
+                                  >
+                                    <XIcon className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              )}
+                              <input
+                                type="file"
+                                ref={imageInputRef}
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleImageChange}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => imageInputRef.current?.click()}
+                                className="w-full py-2.5 px-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-teal-500 dark:hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/10 text-gray-600 dark:text-gray-400 transition-all flex items-center justify-center gap-2 group"
+                              >
+                                <EyeIcon className="w-4 h-4 group-hover:text-teal-500" />
+                                <span className="text-sm font-medium group-hover:text-teal-600">
+                                  {mnemonicImagePreview || mnemonic?.image_url ? 'Change Illustration' : 'Upload Illustration'}
+                                </span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       ) : (
-                        <div className="text-sm text-gray-700 dark:text-gray-300 italic border-l-4 border-teal-500 pl-3">
-                          {mnemonic ? mnemonic.content : "No mnemonic yet. Click the sparkle icon to generate one with AI!"}
+                        <div className="space-y-3">
+                          {mnemonic?.image_url && (
+                             <img
+                                src={mnemonic.image_url}
+                                alt="Mnemonic illustration"
+                                className="w-full h-auto max-h-64 rounded-xl object-contain border border-gray-100 dark:border-gray-700 shadow-sm bg-black/5"
+                                loading="lazy"
+                              />
+                          )}
+                          <div className={`text-sm text-gray-700 dark:text-gray-300 italic border-l-4 border-teal-500 pl-3 ${!mnemonic?.content && 'py-2 opacity-50'}`}>
+                            {mnemonic?.content || (
+                              <button 
+                                onClick={() => setEditingMnemonic(true)}
+                                className="text-teal-600 dark:text-teal-400 hover:underline cursor-pointer not-italic"
+                              >
+                                Click here to add a mnemonic or illustration
+                              </button>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -2003,6 +2147,54 @@ export default function ReviewPage() {
       />
 
       <SmartDictionaryFAB />
+      
+      {/* Mnemonic Reminder Overlay */}
+      {activeMnemonicOverlay && (
+        <div
+          className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-sm w-full p-6 border border-gray-200 dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200 text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-teal-100 dark:bg-teal-900/30 mb-4">
+              <SparklesIcon className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+              {activeMnemonicOverlay.currentMode === 'pre_flash' ? 'Mnemonic Reminder' : 'Remember this one!'}
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 font-serif">
+              {activeMnemonicOverlay.card.kanji || activeMnemonicOverlay.card.kana}
+            </p>
+
+            <div className="space-y-4 mb-8">
+               {activeMnemonicOverlay.mnemonic.image_url && (
+                  <img
+                    src={activeMnemonicOverlay.mnemonic.image_url}
+                    alt="Mnemonic hint"
+                    className="w-full rounded-2xl object-contain max-h-64 border border-gray-100 dark:border-gray-700 bg-black/5"
+                  />
+               )}
+               {activeMnemonicOverlay.mnemonic.content && (
+                  <div className="text-sm text-gray-700 dark:text-gray-300 italic border-l-4 border-teal-500 pl-4 py-2 text-left">
+                    {activeMnemonicOverlay.mnemonic.content}
+                  </div>
+               )}
+            </div>
+
+            <button
+              onClick={handleMnemonicOverlayContinue}
+              className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-teal-500/20"
+            >
+              <span className="text-sm">
+                {activeMnemonicOverlay.currentMode === 'pre_flash' ? 'Go to Flash Quiz' : 'Continue Review'}
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Flash Practice Modal */}
       {activeFlashPractice && (

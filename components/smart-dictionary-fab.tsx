@@ -28,16 +28,16 @@ export default function SmartDictionaryFAB() {
         }
     }, [isOpen]);
 
-    const handleSearch = async (e?: React.FormEvent) => {
-        e?.preventDefault();
-        if (!query.trim()) return;
+    const handleSearch = async (forcedQuery?: string) => {
+        const searchTerm = forcedQuery || query;
+        if (!searchTerm.trim()) return;
 
         setLoading(true);
         setError('');
         setResult(null);
 
         try {
-            const data = await api.post('/api/v1/dictionary/lookup', { word: query });
+            const data = await api.post('/api/v1/dictionary/lookup', { word: searchTerm });
             if (data.data) {
                 setResult(data.data);
             } else {
@@ -49,6 +49,24 @@ export default function SmartDictionaryFAB() {
         } finally {
             setLoading(false);
         }
+    };
+
+    useEffect(() => {
+        const handleGlobalSearch = (e: any) => {
+            const queryText = e.detail?.query;
+            if (queryText) {
+                setQuery(queryText);
+                setIsOpen(true);
+                handleSearch(queryText);
+            }
+        };
+        window.addEventListener('smart-dictionary-search', handleGlobalSearch);
+        return () => window.removeEventListener('smart-dictionary-search', handleGlobalSearch);
+    }, []);
+
+    const onFormSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        handleSearch();
     };
 
     const playAudio = (text: string) => {
@@ -92,7 +110,7 @@ export default function SmartDictionaryFAB() {
                                         <XIcon className="w-5 h-5" />
                                     </button>
                                 </div>
-                                <form onSubmit={handleSearch} className="relative">
+                                <form onSubmit={onFormSubmit} className="relative">
                                     <input
                                         ref={inputRef}
                                         type="text"

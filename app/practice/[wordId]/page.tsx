@@ -52,17 +52,24 @@ export default function PracticePage() {
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const headerMenuRef = useRef<HTMLDivElement>(null);
 
+  // Selection state
+  const [selection, setSelection] = useState<{ text: string; x: number; y: number } | null>(null);
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (headerMenuRef.current && !headerMenuRef.current.contains(e.target as Node)) {
         setShowHeaderMenu(false);
       }
+      // Close selection menu if clicking outside
+      if (selection && !(e.target as HTMLElement).closest('.selection-menu')) {
+        setSelection(null);
+      }
     };
-    if (showHeaderMenu) {
+    if (showHeaderMenu || selection) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showHeaderMenu]);
+  }, [showHeaderMenu, selection]);
 
   useEffect(() => {
     if (!wordId) return;
@@ -312,6 +319,42 @@ export default function PracticePage() {
     }
   };
 
+  const handleMouseUp = () => {
+    // Small delay to ensure selection is complete
+    setTimeout(() => {
+      const sel = window.getSelection();
+      if (sel && sel.toString().trim().length > 0) {
+        try {
+          const range = sel.getRangeAt(0);
+          const rect = range.getBoundingClientRect();
+
+          // Position the menu above the selection
+          setSelection({
+            text: sel.toString().trim(),
+            x: rect.left + rect.width / 2,
+            y: rect.top - 12
+          });
+        } catch (e) {
+          // Range might be invalid
+          setSelection(null);
+        }
+      } else {
+        setSelection(null);
+      }
+    }, 10);
+  };
+
+  const triggerTranslation = () => {
+    if (selection) {
+      window.dispatchEvent(new CustomEvent('smart-dictionary-search', {
+        detail: { query: selection.text }
+      }));
+      setSelection(null);
+      // Clear current selection
+      window.getSelection()?.removeAllRanges();
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -448,7 +491,10 @@ export default function PracticePage() {
                       )}
                     </div>
                   )}
-                  <div className={`text-xl sm:text-2xl md:text-3xl text-black dark:text-white font-serif leading-relaxed break-words [&_rt]:text-sm [&_rt]:text-gray-400 dark:[&_rt]:text-gray-600 [&_rt]:font-sans text-center ${showFurigana ? 'mt-6' : ''}`}>
+                  <div 
+                    onMouseUp={handleMouseUp}
+                    className={`text-xl sm:text-2xl md:text-3xl text-black dark:text-white font-serif leading-relaxed break-words [&_rt]:text-sm [&_rt]:text-gray-400 dark:[&_rt]:text-gray-600 [&_rt]:font-sans text-center ${showFurigana ? 'mt-6' : ''}`}
+                  >
                     {showFurigana && practiceSentence.ja_annotated ? (
                       <span dangerouslySetInnerHTML={{ __html: practiceSentence.ja_annotated }} />
                     ) : (
@@ -685,6 +731,26 @@ export default function PracticePage() {
 
         </div>
       </div>
+
+      {/* Selection Tooltip Menu */}
+      {selection && (
+        <div
+          className="fixed z-[100] bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 rounded-xl py-1 px-1 flex items-center gap-1 animate-in zoom-in-95 fade-in duration-200 selection-menu"
+          style={{
+            top: selection.y,
+            left: selection.x,
+            transform: 'translate(-50%, -100%)'
+          }}
+        >
+          <button
+            onClick={triggerTranslation}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-teal-50 dark:hover:bg-teal-900/40 text-teal-600 dark:text-teal-400 rounded-lg transition-colors text-sm font-bold whitespace-nowrap cursor-pointer"
+          >
+            <LanguagesIcon className="w-4 h-4" />
+            <span>Translate</span>
+          </button>
+        </div>
+      )}
 
       <SmartDictionaryFAB />
     </div>
