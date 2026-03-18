@@ -83,32 +83,33 @@ function formatSessionTime(ms: number): string {
 
 /**
  * Renders mnemonic text with formatting:
- * *word* -> Bold + Amber Color
- * _word_ -> Italic + Teal Color
+ * *word*  -> Bold + Amber color, NOT italic
+ * _word_  -> Italic + Teal color
+ * plain   -> normal weight, NOT italic (italic only applies to _marked_ words)
  */
 const MnemonicFormatter = ({ text }: { text: string }) => {
   if (!text) return null;
-  // Regex to split by *text* or _text_
   const parts = text.split(/(\*[^*]+\*|_[^_]+_)/g);
-  
+
   return (
     <>
       {parts.map((part, index) => {
         if (part.startsWith('*') && part.endsWith('*')) {
           return (
-            <strong key={index} className="font-bold text-amber-600 dark:text-amber-400 not-italic inline-block">
+            <strong key={index} className="font-bold text-amber-600 dark:text-amber-400 not-italic">
               {part.slice(1, -1)}
             </strong>
           );
         }
         if (part.startsWith('_') && part.endsWith('_')) {
           return (
-            <em key={index} className="text-teal-600 dark:text-teal-400 italic not-italic inline-block">
+            <em key={index} className="text-teal-600 dark:text-teal-400 italic font-medium">
               {part.slice(1, -1)}
             </em>
           );
         }
-        return part;
+        // Plain text — explicitly not italic so parent's italic class doesn't leak in
+        return <span key={index} className="not-italic">{part}</span>;
       })}
     </>
   );
@@ -904,8 +905,8 @@ export default function ReviewPage() {
           currentModality: requiredModalities[0]
         };
 
-        // If card has a mnemonic with an image, show it BEFORE flash practice
-        if (mnemonic && mnemonic.image_url) {
+        // Show mnemonic overlay before flash practice if card has a mnemonic (text OR image)
+        if (mnemonic && (mnemonic.content || mnemonic.image_url)) {
           setActiveMnemonicOverlay({
             card: cardContent,
             mnemonic: mnemonic,
@@ -2064,7 +2065,7 @@ export default function ReviewPage() {
                               alt="Mnemonic illustration"
                             />
                           )}
-                          <div className={`text-sm text-gray-700 dark:text-gray-300 italic border-l-4 border-teal-500 pl-3 ${!mnemonic?.content && 'py-2 opacity-50'}`}>
+                          <div className={`text-sm text-gray-700 dark:text-gray-300 border-l-4 border-teal-500 pl-3 leading-relaxed ${!mnemonic?.content && 'py-2 opacity-50'}`}>
                             {mnemonic?.content ? (
                               <MnemonicFormatter text={mnemonic.content} />
                             ) : (
@@ -2259,7 +2260,7 @@ export default function ReviewPage() {
                   />
                )}
                {activeMnemonicOverlay.mnemonic.content && (
-                  <div className="text-sm text-gray-700 dark:text-gray-300 italic border-l-4 border-teal-500 pl-4 py-2 text-left">
+                  <div className="text-sm text-gray-700 dark:text-gray-300 border-l-4 border-teal-500 pl-4 py-2 text-left">
                     <MnemonicFormatter text={activeMnemonicOverlay.mnemonic.content} />
                   </div>
                )}
