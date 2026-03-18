@@ -81,6 +81,39 @@ function formatSessionTime(ms: number): string {
   return `${secs}s`;
 }
 
+/**
+ * Renders mnemonic text with formatting:
+ * *word* -> Bold + Amber Color
+ * _word_ -> Italic + Teal Color
+ */
+const MnemonicFormatter = ({ text }: { text: string }) => {
+  if (!text) return null;
+  // Regex to split by *text* or _text_
+  const parts = text.split(/(\*[^*]+\*|_[^_]+_)/g);
+  
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (part.startsWith('*') && part.endsWith('*')) {
+          return (
+            <strong key={index} className="font-bold text-amber-600 dark:text-amber-400 not-italic inline-block">
+              {part.slice(1, -1)}
+            </strong>
+          );
+        }
+        if (part.startsWith('_') && part.endsWith('_')) {
+          return (
+            <em key={index} className="text-teal-600 dark:text-teal-400 italic not-italic inline-block">
+              {part.slice(1, -1)}
+            </em>
+          );
+        }
+        return part;
+      })}
+    </>
+  );
+};
+
 export default function ReviewPage() {
   const router = useRouter();
   const { setHeaderContent } = useHeader();
@@ -1973,6 +2006,10 @@ export default function ReviewPage() {
                             placeholder="Type a mnemonic to help you remember..."
                             autoFocus
                           />
+                          <div className="flex gap-4 text-[10px] text-gray-400 font-medium px-1">
+                            <span className="flex items-center gap-1"><kbd className="bg-gray-100 dark:bg-gray-700 px-1 rounded border dark:border-gray-600 font-mono">*</kbd> *<b>Tebal + Amber</b>*</span>
+                            <span className="flex items-center gap-1"><kbd className="bg-gray-100 dark:bg-gray-700 px-1 rounded border dark:border-gray-600 font-mono">_</kbd> _<i>Miring + Teal</i>_</span>
+                          </div>
                           
                           {user && (user.is_admin || user.isAdmin || user.role === 'admin') && (
                             <div className="pt-2 border-t border-gray-100 dark:border-gray-750">
@@ -2028,7 +2065,9 @@ export default function ReviewPage() {
                             />
                           )}
                           <div className={`text-sm text-gray-700 dark:text-gray-300 italic border-l-4 border-teal-500 pl-3 ${!mnemonic?.content && 'py-2 opacity-50'}`}>
-                            {mnemonic?.content || (
+                            {mnemonic?.content ? (
+                              <MnemonicFormatter text={mnemonic.content} />
+                            ) : (
                               <button 
                                 onClick={() => setEditingMnemonic(true)}
                                 className="text-teal-600 dark:text-teal-400 hover:underline cursor-pointer not-italic"
@@ -2221,7 +2260,7 @@ export default function ReviewPage() {
                )}
                {activeMnemonicOverlay.mnemonic.content && (
                   <div className="text-sm text-gray-700 dark:text-gray-300 italic border-l-4 border-teal-500 pl-4 py-2 text-left">
-                    {activeMnemonicOverlay.mnemonic.content}
+                    <MnemonicFormatter text={activeMnemonicOverlay.mnemonic.content} />
                   </div>
                )}
             </div>
