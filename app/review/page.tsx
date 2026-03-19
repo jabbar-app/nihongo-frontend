@@ -2013,7 +2013,7 @@ export default function ReviewPage() {
                           </div>
                           
                           {user && (user.is_admin || user.isAdmin || user.role === 'admin') && (
-                            <div className="pt-2 border-t border-gray-100 dark:border-gray-750">
+                            <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
                               <div className="text-xs font-semibold text-gray-500 mb-2">Illustration (Admin)</div>
                               {(mnemonicImagePreview || mnemonic?.image_url) && (
                                 <div className="relative w-full aspect-video max-h-48 mb-3 group">
@@ -2309,7 +2309,7 @@ export default function ReviewPage() {
             </div>
 
             <div className="space-y-6">
-              <div className="text-center bg-gray-50 dark:bg-gray-750 p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+              <div className="text-center bg-gray-50 dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
                 {activeFlashPractice.currentModality === 'meaning' && (
                   <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2 font-serif">
                     {activeFlashPractice.card.kanji || activeFlashPractice.card.kana}
